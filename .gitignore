@@ -1,0 +1,15 @@
+.git/
+
+.idea/
+
+__pycache__/
+
+lavalink/
+
+logs/
+
+personal/
+
+venv/
+
+config.py
