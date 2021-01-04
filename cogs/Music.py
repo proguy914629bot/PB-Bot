@@ -476,6 +476,35 @@ class Music(commands.Cog):
         await ctx.send(f"Set the volume to `{volume}`.")
 
     @is_playing()
+    @commands.command(aliases=["eq", "setequalizer", "seteq"])
+    async def equalizer(self, ctx, *, equalizer):
+        """
+        Change the players equalizer.
+
+        `equalizer` - The new equalizer. Available equalizers:
+        flat - Resets the equalizer to flat.
+        boost - Boost equalizer. This equalizer emphasizes punchy bass and crisp mid-high tones. Not suitable for tracks with deep/low bass.
+        metal - Experimental metal/rock equalizer. Expect clipping on bassy songs.
+        piano - Piano equalizer. Suitable for piano tracks, or tacks with an emphasis on female vocals. Could also be used as a bass cutoff.
+
+        Source: https://wavelink.readthedocs.io/en/latest/wavelink.html#equalizer
+        """
+        equalizers = {
+            "flat": wavelink.Equalizer.flat(),
+            "boost": wavelink.Equalizer.boost(),
+            "metal": wavelink.Equalizer.metal(),
+            "piano": wavelink.Equalizer.piano()
+        }
+        equalizer = equalizer.lower()
+        try:
+            eq = equalizers[equalizer]
+        except KeyError:
+            eqs = "\n".join(equalizers)
+            return await ctx.send(f"Invalid equalizer provided. Available equalizers:\n\n{eqs}")
+        await ctx.player.set_eq(eq)
+        await ctx.send(f"Set the equalizer to `{equalizer}`.")
+
+    @is_playing()
     @commands.command(
         aliases=["fastfwd"]
     )
