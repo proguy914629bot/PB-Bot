@@ -152,3 +152,9 @@ class CustomContext(commands.Context):
     @property
     def clean_prefix(self):
         return re.sub(f"<@!?{bot.user.id}>", "@PB Bot", self.prefix)
+
+    async def send(self, *args, **kwargs):
+        try:
+            await self.reply(*args, **kwargs)
+        except discord.HTTPException:
+            await super().send(*args, **kwargs)
