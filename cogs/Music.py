@@ -99,11 +99,11 @@ class PlayerMenu(menus.Menu):
 
         self.embed = discord.Embed(
             title=f"Player for `{self.ctx.guild}`",
-            description=f"""
-                 **Status**: `{"Paused" if self.ctx.player.is_paused else "Playing"}`
-                 **Connected To**: `{self.ctx.guild.get_channel(self.ctx.player.channel_id).name}`
-                 **Volume**: `{self.ctx.player.volume}`
-                 """,
+            description= \
+            f"**Status:** `{'Paused' if self.ctx.player.is_paused else 'Playing'}`\n"
+            f"**Connected To:** `{self.ctx.guild.get_channel(self.ctx.player.channel_id).name}`\n"
+            f"**Volume:** `{self.ctx.player.volume}`\n"
+            f"**Equalizer:** `{self.ctx.player.equalizer}`",
             colour=bot.embed_colour
         )
         self.embed.add_field(name="Now Playing:", value=f"{self.ctx.player.current}", inline=False)
@@ -482,12 +482,12 @@ class Music(commands.Cog):
         Change the players equalizer.
 
         `equalizer` - The new equalizer. Available equalizers:
-        flat - Resets the equalizer to flat.
-        boost - Boost equalizer. This equalizer emphasizes punchy bass and crisp mid-high tones. Not suitable for tracks with deep/low bass.
-        metal - Experimental metal/rock equalizer. Expect clipping on bassy songs.
-        piano - Piano equalizer. Suitable for piano tracks, or tacks with an emphasis on female vocals. Could also be used as a bass cutoff.
 
-        Source: https://wavelink.readthedocs.io/en/latest/wavelink.html#equalizer
+        `flat` - Resets the equalizer to flat.
+        `boost` - Boost equalizer. This equalizer emphasizes punchy bass and crisp mid-high tones. Not suitable for tracks with deep/low bass.
+        `metal` - Experimental metal/rock equalizer. Expect clipping on bassy songs.
+        `piano` - Piano equalizer. Suitable for piano tracks, or tacks with an emphasis on female vocals. Could also be used as a bass cutoff.
+        **Source:** https://wavelink.readthedocs.io/en/latest/wavelink.html#equalizer
         """
         equalizers = {
             "flat": wavelink.Equalizer.flat(),
