@@ -98,9 +98,13 @@ class CustomHelpCommand(commands.HelpCommand):
         embed.add_field(name="Signature:", value=f"{command.name} {command.signature}", inline=False)
         embed.add_field(name="Category:", value=f"{command.cog_name}", inline=False)
         embed.add_field(name="Aliases:", value=aliases, inline=False)
+
         if self.clean_prefix.endswith(" "):
-            self.clean_prefix = self.clean_prefix.strip() + " "
-        embed.set_footer(text=f"Type {self.clean_prefix}help (command) for more info on a command.\nYou can also type {self.clean_prefix}help (category) for more info on a category.")
+            clean_prefix = self.clean_prefix.strip() + " "
+        else:
+            clean_prefix = self.clean_prefix
+
+        embed.set_footer(text=f"Type {clean_prefix}help (command) for more info on a command.\nYou can also type {clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def send_cog_help(self, cog):
@@ -111,9 +115,13 @@ class CustomHelpCommand(commands.HelpCommand):
         embed = discord.Embed(title=f"Help on Category `{cog.qualified_name}`", description=cog.description or 'No info available.', colour=bot.embed_colour)
         embed.set_thumbnail(url=bot.user.avatar_url)
         embed.add_field(name="Commands in this Category:", value=_commands)
+
         if self.clean_prefix.endswith(" "):
-            self.clean_prefix = self.clean_prefix.strip() + " "
-        embed.set_footer(text=f"Type {self.clean_prefix}help (command) for more info on a command.\nYou can also type {self.clean_prefix}help (category) for more info on a category.")
+            clean_prefix = self.clean_prefix.strip() + " "
+        else:
+            clean_prefix = self.clean_prefix
+
+        embed.set_footer(text=f"Type {clean_prefix}help (command) for more info on a command.\nYou can also type {clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def send_group_help(self, group):
@@ -131,9 +139,13 @@ class CustomHelpCommand(commands.HelpCommand):
         embed.add_field(name="Aliases:", value=aliases, inline=False)
         embed.add_field(name="Commands in this Group:", value=_commands)
         embed.set_thumbnail(url=bot.user.avatar_url)
+
         if self.clean_prefix.endswith(" "):
-            self.clean_prefix = self.clean_prefix.strip() + " "
-        embed.set_footer(text=f"Type {self.clean_prefix}help (command) for more info on a command.\nYou can also type {self.clean_prefix}help (category) for more info on a category.")
+            clean_prefix = self.clean_prefix.strip() + " "
+        else:
+            clean_prefix = self.clean_prefix
+
+        embed.set_footer(text=f"Type {clean_prefix}help (command) for more info on a command.\nYou can also type {clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def command_not_found(self, string):
