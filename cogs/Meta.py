@@ -1,12 +1,10 @@
 import discord
-from discord.ext import commands, flags, menus
+from discord.ext import commands, menus
 import asyncio
 import random
 import pytesseract
-import io
 import cv2
 import numpy as np
-from distutils.util import strtobool
 import re
 import base64 as b64
 import humanize
