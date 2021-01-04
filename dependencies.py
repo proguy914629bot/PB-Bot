@@ -155,6 +155,6 @@ class CustomContext(commands.Context):
 
     async def send(self, *args, **kwargs):
         try:
-            await self.reply(*args, **kwargs)
+            await self.reply(*args, **kwargs, mention_author=False)
         except discord.HTTPException:
             await super().send(*args, **kwargs)
