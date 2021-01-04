@@ -20,7 +20,7 @@ class DiscordStatusSource(menus.ListPageSource):
         # 1: component overview
         # 2: most recent incident
         # 3-5: month incidents
-        # 6+: maybe maintenance info?
+        # 6+: maintenance info?
         if menu.current_page == 0:  # general (n/n systems operational)
             all_components = [component for component in self.summary["components"] if component['name'] in DiscordStatusSource.important_components]
             operational = [component for component in all_components if component["status"] == "operational"]
@@ -62,7 +62,9 @@ class Info(commands.Cog):
     )
     async def avatar(self, ctx, *, member: discord.Member = None):
         """
-        Returns the avatar and avatar link of whoever you choose. Defaults to the message author.
+        Returns the avatar and avatar url of a member.
+
+        `member` - The member whose avatar you would like to view. Defaults to you.
         """
         member = member or ctx.author
         embed = discord.Embed(title=f"{member}'s avatar", description=f"[Open original]({member.avatar_url})",
@@ -75,7 +77,7 @@ class Info(commands.Cog):
     )
     async def serverinfo(self, ctx):
         """
-        Displays information for the current server/guild.
+        Displays information for the current server.
         """
         animated_emojis = [emoji for emoji in ctx.guild.emojis if emoji.animated]
         not_animated_emojis = [emoji for emoji in ctx.guild.emojis if not emoji.animated]
@@ -125,13 +127,14 @@ class Info(commands.Cog):
     )
     async def discordstatus(self, ctx):
         """
-        Get the current status of discord from https://discordstatus.com.
+        View the current status of discord. Source: https://discordstatus.com
         """
-        async with bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/summary.json") as response:
-            summary = await response.json()
-        async with bot.session.get("https://discordstatus.com/history.json") as response:
-            response = await response.json()
-        await menus.MenuPages(DiscordStatusSource(summary, response), clear_reactions_after=True).start(ctx)
+        async with ctx.typing():
+            async with bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/summary.json") as response:
+                summary = await response.json()
+            async with bot.session.get("https://discordstatus.com/history.json") as response:
+                response = await response.json()
+            await menus.MenuPages(DiscordStatusSource(summary, response), clear_reactions_after=True).start(ctx)
 
 
 def setup(_):

@@ -13,7 +13,6 @@ class SnakeMenu(menus.Menu):
     """
     Menu for snake game.
     """
-
     def __init__(self, player_ids, **kwargs):
         super().__init__(**kwargs)
         self.game = SnakeGame(empty="⬛")
@@ -94,7 +93,7 @@ class Fun(commands.Cog):
     @commands.command()
     async def coinflip(self, ctx):
         """
-        Returns heads, tails or ???
+        Returns heads, tails or ???.
         """
         result = random.choices(population=["heads", "tails", "side"], weights=[0.45, 0.45, 0.01], k=1)[0]
         if result == "side":
@@ -104,14 +103,16 @@ class Fun(commands.Cog):
     @commands.command(
         aliases=["cm"]
     )
-    async def cleanmeme(self, ctx, sort_by=None):
+    async def cleanmeme(self, ctx, category=None):
         """
         Gets a random post from r/CleanMemes.
+
+        `category` - The category to search in. Available categories: hot, new, top, rising.
         """
-        if sort_by is None:
-            sort_by = "hot"
-        sort_by, _ = process.extractOne(sort_by, ["hot", "new", "top", "rising"])
-        async with bot.session.get(f"https://www.reddit.com/r/CleanMemes/new.json?sort={sort_by}") as r:
+        if category is None:
+            category = "hot"
+        category, _ = process.extractOne(category, ["hot", "new", "top", "rising"])
+        async with bot.session.get(f"https://www.reddit.com/r/CleanMemes/new.json?sort={category}") as r:
             response = await r.json()
             embed = discord.Embed(title=response['data']['children']
             [random.randint(0, len(response['data']['children']) - 1)]['data']['title'], colour=bot.embed_colour)
@@ -132,7 +133,7 @@ class Fun(commands.Cog):
     )
     async def cookie(self, ctx):
         """
-        Simple test of timing and reflexes.
+        Yum yum.
         """
         cookies = ["🍪", "🥠"]
         reaction = random.choices(cookies, weights=[0.9, 0.1], k=1)[0]
@@ -163,6 +164,8 @@ class Fun(commands.Cog):
     async def tictactoe(self, ctx, *, player2: discord.Member):
         """
         Challenge someone to a game of tic-tac-toe!
+
+        `player2` - The user to challenge.
         """
         if player2 == ctx.author:
             return await ctx.send(f"You can't challenge yourself {ctx.author.mention}.")
@@ -189,12 +192,15 @@ class Fun(commands.Cog):
     @commands.command()
     async def snake(self, ctx, *args):
         """
-        Play a game of snake by yourself or with others. Include `--public` when running the command to allow anyone to control the game.
+        Play a game of snake by yourself or with others.
+
+        `args` - The users who can control the game. Set this to `--public` to allow anyone to control the game.
         """
         if "--public" in args:
             player_ids = []
         else:
-            player_ids = [(await commands.MemberConverter().convert(ctx, arg)).id for arg in args] + [ctx.author.id]
+            player_ids = [(await commands.MemberConverter().convert(ctx, arg)).id for arg in args]
+            player_ids.append(ctx.author.id)
         menu = SnakeMenu(player_ids, clear_reactions_after=True)
         await menu.start(ctx, wait=True)
 

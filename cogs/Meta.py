@@ -15,9 +15,10 @@ import pathlib
 from pyfiglet import Figlet
 
 from dependencies import bot
+from config import config
 
 f = Figlet()
-pytesseract.pytesseract.tesseract_cmd = r"C:\Users\prash\AppData\Local\Tesseract-OCR\tesseract"
+pytesseract.pytesseract.tesseract_cmd = config["tesseract_path"]
 
 
 class Meta(commands.Cog):
@@ -28,6 +29,8 @@ class Meta(commands.Cog):
     async def mystbin(self, ctx, *, text_to_paste=None):
         """
         Paste text or a text file to https://mystb.in.
+
+        `text_to_paste` - The text to paste to mystbin.
         """
         data = []
         if text_to_paste:
@@ -48,6 +51,8 @@ class Meta(commands.Cog):
     async def hastebin(self, ctx, *, text_to_paste=None):
         """
         Paste text or a text file to https://hastebin.com.
+
+        `text_to_paste` - The text to paste to hastebin.
         """
         data = []
         if text_to_paste:
@@ -68,6 +73,8 @@ class Meta(commands.Cog):
     async def xkcd(self, ctx, comic_number: int = None):
         """
         Get a specific or random comic from https://xkcd.com.
+
+        `comic_number` - The comic number to get. Defaults to a random number.
         """
         if comic_number is None:
             comic_number = random.randint(1, 2406)
@@ -82,15 +89,15 @@ class Meta(commands.Cog):
         await ctx.send(embed=embed)
 
     def _ocr(self, bytes):
-        img = cv2.imdecode(np.fromstring(bytes, np.uint8), 1)  # cv file object from message attachment
+        img = cv2.imdecode(np.fromstring(bytes, np.uint8), 1)
         _, buffer = cv2.imencode(".png", img)
         return pytesseract.image_to_string(img)
 
     @commands.command()
     async def ocr(self, ctx):
         """
-        Read the contents of an attachment(s) using `pytesseract`.
-        **NOTE:** can be *very* inaccurate at times.
+        Read the contents of an attachment using `pytesseract`.
+        **NOTE:** This can be *very* inaccurate at times.
         """
         if not ctx.message.attachments:
             return await ctx.send("No attachment provided.")
@@ -101,6 +108,8 @@ class Meta(commands.Cog):
     async def ascii(self, ctx, *, text):
         """
         Convert text to ascii characters. Might look messed up on mobile.
+
+        `text` - The text to convert to ascii.
         """
         char_list = bot.utils.split_on_num(text, 25)
         ascii_char_list = [f.renderText(char) for char in char_list]
@@ -109,7 +118,9 @@ class Meta(commands.Cog):
     @commands.command()
     async def define(self, ctx, *, word):
         """
-        Search up the definition of a word in the dictionary. Source: https://dictionaryapi.dev/
+        Search up the definition of a word. Source: https://dictionaryapi.dev/
+
+        `word` - The word to search up.
         """
         url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
         async with bot.session.get(url) as r:
@@ -174,6 +185,8 @@ class Meta(commands.Cog):
     async def owoify(self, ctx, *, text):
         """
         Owoifies text. Mentions are escaped.
+
+        `text` - The text to owoify.
         """
         await ctx.send(discord.utils.escape_mentions(bot.utils.owoify(text)))
 

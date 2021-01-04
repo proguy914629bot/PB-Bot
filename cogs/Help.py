@@ -16,6 +16,8 @@ class HelpSource(menus.ListPageSource):
     async def format_page(self, menu, page):
         embed = discord.Embed(title="Help Menu for PB Bot", description=f"Page {menu.current_page + 1}/{self.get_max_pages()}", color=bot.embed_colour)
         embed.set_thumbnail(url=bot.user.avatar_url)
+        if self.ctx.clean_prefix.endswith(" "):
+            self.ctx.clean_prefix = self.ctx.clean_prefix.strip() + " "
         embed.set_footer(text=f"Type {self.ctx.clean_prefix}help (command) for more info on a command.\nYou can also type {self.ctx.clean_prefix}help (category) for more info on a category.")
         if menu.current_page == 0:
             embed.add_field(name="About", value=bot.description)
@@ -24,7 +26,7 @@ class HelpSource(menus.ListPageSource):
             # page[1] = cog instance
             _commands = "\n".join(str(command) for command in page[1].get_commands())
             if not _commands:
-                _commands = "No commands in this cog."
+                _commands = "No commands in this category."
             embed.add_field(name=page[0], value=_commands)
         return embed
 
@@ -76,7 +78,6 @@ class CustomHelpCommand(commands.HelpCommand):
         # try:
         #     user = await self.context.author.create_dm()
         #     await pages.start(self.context, channel=user)
-        #     await bot.safe_add_reaction(self.context.message, '\N{WHITE HEAVY CHECK MARK}')
         # except discord.Forbidden:
         #     confirm = await Confirm("Your DMs are off. Do you want me to send help in this channel?").prompt(self.context)
         #     if confirm:
@@ -92,11 +93,13 @@ class CustomHelpCommand(commands.HelpCommand):
             aliases = 'None'
         else:
             aliases = "\n".join(alias for alias in command.aliases)
-        embed = discord.Embed(title=f"Help on Command `{command.name}`", description=command.help if command.help else 'No info available.', colour=bot.embed_colour)
+        embed = discord.Embed(title=f"Help on Command `{command.name}`", description=command.help or 'No info available.', colour=bot.embed_colour)
         embed.set_thumbnail(url=bot.user.avatar_url)
         embed.add_field(name="Signature:", value=f"{command.name} {command.signature}", inline=False)
         embed.add_field(name="Category:", value=f"{command.cog_name}", inline=False)
         embed.add_field(name="Aliases:", value=aliases, inline=False)
+        if self.clean_prefix.endswith(" "):
+            self.clean_prefix = self.clean_prefix.strip() + " "
         embed.set_footer(text=f"Type {self.clean_prefix}help (command) for more info on a command.\nYou can also type {self.clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
@@ -105,9 +108,11 @@ class CustomHelpCommand(commands.HelpCommand):
             _commands = 'None'
         else:
             _commands = "\n".join(str(command) for command in cog.get_commands())
-        embed = discord.Embed(title=f"Help on Cog `{cog.qualified_name}`", description=cog.description if cog.description else 'No info available.', colour=bot.embed_colour)
+        embed = discord.Embed(title=f"Help on Category `{cog.qualified_name}`", description=cog.description or 'No info available.', colour=bot.embed_colour)
         embed.set_thumbnail(url=bot.user.avatar_url)
-        embed.add_field(name="Commands in this Cog:", value=_commands)
+        embed.add_field(name="Commands in this Category:", value=_commands)
+        if self.clean_prefix.endswith(" "):
+            self.clean_prefix = self.clean_prefix.strip() + " "
         embed.set_footer(text=f"Type {self.clean_prefix}help (command) for more info on a command.\nYou can also type {self.clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
@@ -120,32 +125,19 @@ class CustomHelpCommand(commands.HelpCommand):
             _commands = "None"
         else:
             _commands = "\n".join(str(command) for command in group.walk_commands())
-        embed = discord.Embed(title=f"Help on Command Group `{group.name}`", description=group.help if group.help else 'No info available.', colour=bot.embed_colour)
+        embed = discord.Embed(title=f"Help on Command Group `{group.name}`", description=group.help or 'No info available.', colour=bot.embed_colour)
         embed.add_field(name="Signature:", value=f"{group.name} {group.signature}", inline=False)
         embed.add_field(name="Category:", value=f"{group.cog_name}", inline=False)
         embed.add_field(name="Aliases:", value=aliases, inline=False)
         embed.add_field(name="Commands in this Group:", value=_commands)
         embed.set_thumbnail(url=bot.user.avatar_url)
+        if self.clean_prefix.endswith(" "):
+            self.clean_prefix = self.clean_prefix.strip() + " "
         embed.set_footer(text=f"Type {self.clean_prefix}help (command) for more info on a command.\nYou can also type {self.clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def command_not_found(self, string):
-        commands_list = []
-        for command in bot.commands:
-            commands_list.append(command.name)
-            for alias in command.aliases:
-                commands_list.append(alias)
-            if isinstance(command, commands.Group):
-                for subcommand in command.walk_commands():
-                    commands_list.append(f"{command.name} {subcommand.name}")
-                    for sub_command_alias in subcommand.aliases:
-                        commands_list.append(f"{command.name} {sub_command_alias}")
-                for alias in command.aliases:
-                    for subcommand in command.walk_commands():
-                        commands_list.append(f"{alias} {subcommand.name}")
-                        for sub_command_alias in subcommand.aliases:
-                            commands_list.append(f"{alias} {sub_command_alias}")
-        match, ratio = process.extractOne(string, commands_list)
+        match, ratio = process.extractOne(string, bot.command_list)
         if ratio < 75:
             return f"Command '{string}' is not found."
         return f"Command '{string}' is not found. Did you mean `{match}`?"

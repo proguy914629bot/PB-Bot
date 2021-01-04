@@ -45,6 +45,8 @@ class Admin(commands.Cog):
     async def load(self, ctx, *args):
         """
         Loads cogs.
+
+        `args` - Any amount of cogs to load.
         """
         if "all" in args or "All" in args:
             cogs_to_load = bot.coglist
@@ -64,6 +66,8 @@ class Admin(commands.Cog):
     async def unload(self, ctx, *args):
         """
         Unloads cogs.
+
+        `args` - Any amount of cogs to unload.
         """
         if "all" in args or "All" in args:
             cogs_to_unload = bot.coglist
@@ -87,6 +91,8 @@ class Admin(commands.Cog):
     async def reload(self, ctx, *args):
         """
         Reloads cogs.
+
+        `args` - Any amount of cogs to reload.
         """
         if "all" in args or "All" in args:
             cogs_to_reload = list(bot.extensions.keys())
@@ -113,7 +119,7 @@ class Admin(commands.Cog):
     @admin.group(invoke_without_command=True)
     async def todo(self, ctx):
         """
-        View the items in the todo list.
+        View the tasks in the todo list.
         """
         entries = [entry['task'] for entry in await bot.pool.fetch("SELECT * FROM todolist")]
         li = [(number, item) for number, item in enumerate(entries, start=1)]
@@ -122,7 +128,9 @@ class Admin(commands.Cog):
     @todo.command()
     async def add(self, ctx, *, task):
         """
-        Add an item to the todo list.
+        Add a task to the todo list.
+
+        `task` - The task to add.
         """
         if await bot.pool.fetchval("SELECT * FROM todolist WHERE task = $1", task):
             return await ctx.send(f"`{task}` is already in the todo list.")
@@ -132,7 +140,9 @@ class Admin(commands.Cog):
     @todo.command()
     async def remove(self, ctx, *, task):
         """
-        Remove an item from the todo list.
+        Remove a task from the todo list.
+
+        `task` - The task to remove.
         """
         if not await bot.pool.fetchval("SELECT * FROM todolist WHERE task = $1", task):
             return await ctx.send(f"`{task}` is not in the todo list.")
@@ -142,7 +152,10 @@ class Admin(commands.Cog):
     @admin.command()
     async def cleanup(self, ctx: commands.Context, amount: int = 10, limit: int = 100):
         """
-        Delete the first `x` messages that I sent in the current channel. `x` defaults to 10.
+        Self-deletes messages in the current channel.
+
+        `amount` - The amount of messages to delete. Defaults to 10.
+        `limit` - The amount of messages to search through. Defaults to 100.
         """
         counter = 0
         async for message in ctx.channel.history(limit=limit):
@@ -151,22 +164,30 @@ class Admin(commands.Cog):
                 counter += 1
                 if counter >= amount:
                     break
-        await ctx.send(f"Successfully purged `{counter}` message(s).")  # using `counter` here as the message limit can prevent all the messages from being purged.
+        await ctx.send(f"Successfully purged `{counter}` message(s).")
 
     @admin.command()
     async def emojisnipe(self, ctx, name: str, emoji: bytes=None):
         """
-        Snipes emojis.
+        Snipes emojis for personal use.
+
+        `name` - The name of the emoji.
+        `emoji` - The emoji to snipe (can NOT be unicode).
         """
-        if not emoji:
-            emoji = await ctx.message.attachments[0].read()
+        if emoji:
+            emoji = await emoji.url.read()
+        else:
+            try:
+                emoji = await ctx.message.attachments[0].read()
+            except (IndexError, TypeError):
+                return await ctx.send("No emoji provided.")
         await bot.get_guild(719665666696675369).create_custom_emoji(name=name, image=emoji)
         await ctx.send("👌")
 
     @admin.group(invoke_without_command=True)
     async def error(self, ctx):
         """
-        Commands to manage the error database.
+        View the errors in the database.
         """
         data = await bot.pool.fetch("SELECT * FROM errors")
         await ctx.send(f"There are `{len(data)}` errors in the database.")
@@ -174,7 +195,10 @@ class Admin(commands.Cog):
     @error.command()
     async def view(self, ctx, err_num: int, thing_to_view="traceback"):
         """
-        View information of an error in the database.
+        View information about an error in the database.
+
+        `err_num` - The error number to search for.
+        `thing_to_view` - The thing to view about the error. Defaults to "traceback".
         """
         thing_to_view = thing_to_view.lower()
         data = await bot.pool.fetchval(f"SELECT {thing_to_view} FROM errors WHERE err_num = $1", err_num)
@@ -190,7 +214,9 @@ class Admin(commands.Cog):
     @error.command()
     async def fix(self, ctx, error):
         """
-        Remove an error (or errors) from the database.
+        Remove an error or errors from the database.
+
+        `error` - The errors to remove from the database.
         """
         if re.match(r"\d+-\d+", error): # x-x
             rnge = error.split("-")

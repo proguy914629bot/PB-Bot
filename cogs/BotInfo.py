@@ -27,6 +27,8 @@ class BotInfo(commands.Cog, name="Bot Info"):
     async def ping(self, ctx, accuracy: int = 2):
         """
         Displays the websocket latency and the api response time.
+
+        `accuracy` - The amount of decimal places to show. Defaults to 2.
         """
         start = time.perf_counter()
         await ctx.trigger_typing()
@@ -34,7 +36,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         try:
             await ctx.send(embed=discord.Embed(title="Pong!", description=f"**Websocket Latency:** `{bot.latency * 1000:.{accuracy}f}ms`\n**API response time:** `{api_response_time * 1000:.{accuracy}f}ms`", colour=bot.embed_colour))
         except (discord.errors.HTTPException, ValueError):
-            await ctx.send(f"Can't send ping information. Accuracy of {accuracy} is too large.")
+            await ctx.send(f"Too many decimal places ({accuracy}).")
 
     @commands.command()
     async def botinfo(self, ctx):
@@ -46,7 +48,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         api_response_time = time.perf_counter() - start
         embed = discord.Embed(title="Bot Info", colour=bot.embed_colour)
         embed.set_thumbnail(url=bot.user.avatar_url)
-        embed.add_field(name="General Information",
+        embed.add_field(name="General",
                     value= \
                     f"• Running discord.py version **{discord.__version__}** on python **{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}**\n"
                     f"• This bot is not sharded and can see **{len(bot.guilds)}** servers and **{len(bot.users)}** users\n"
@@ -84,7 +86,9 @@ class BotInfo(commands.Cog, name="Bot Info"):
     @prefix.command(name="add")
     async def add_(self, ctx, *, prefix):
         """
-        Add a prefix to the list of prefixes for the current server. The `manage server` permission is required to use this command.
+        Add a prefix to the prefix list for the current server. The `manage server` permission is required to use this command.
+
+        `prefix` - The prefix to add.
         """
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")
@@ -101,7 +105,9 @@ class BotInfo(commands.Cog, name="Bot Info"):
     @prefix.command()
     async def remove(self, ctx, *, prefix):
         """
-        Remove a prefix from the list of prefixes for the current server. The `manage server` permission is required to use this command.
+        Remove a prefix from the prefix list for the current server. The `manage server` permission is required to use this command.
+
+        `prefix` - The prefix to remove.
         """
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")

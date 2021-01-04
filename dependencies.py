@@ -78,7 +78,7 @@ class PB_Bot(commands.Bot):
         async def predicate(ctx):
             if ctx.author.id == self.owner_id:
                 return True
-            await ctx.send(f"The `{ctx.invoked_with}` command is currently in beta. Only my owner can use it.")
+            await ctx.send(f"The `{ctx.command}` command is currently in beta. Only my owner can use it.")
             return
         return commands.check(predicate)
 
@@ -95,7 +95,7 @@ class PB_Bot(commands.Bot):
     # async def dump_prefixes(self):
     #     for guild_id, prefixes in self.prefixes.items():
     #         await self.pool.execute("UPDATE prefixes SET guild_prefixes = $1 WHERE guild_id = $2", prefixes, guild_id)
-
+    #
     # @tasks.loop(minutes=10)
     # async def dump_prefixes_task(self):
     #     await self.dump_prefixes()

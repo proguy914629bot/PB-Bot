@@ -282,28 +282,23 @@ def is_playing():
 
 # Controls:
 
-# next
-# previous
+# skip/previous
 # play/pause
 # volume up/down
 # songqueue add/remove
 # fastforward
 # rewind
-# todo:
-# skip but command
-# play and pause command
-
 
 class Music(commands.Cog):
     """
-    Commands that allow the bot to play music in a voice channel.
+    Music commands.
     """
     def __init__(self):
         @property
-        def get_player(self):
-            player = bot.wavelink.get_player(self.guild.id, cls=Player)
+        def get_player(ctx):
+            player = bot.wavelink.get_player(ctx.guild.id, cls=Player)
             if not hasattr(player, "session_chan"):
-                player.session_chan = self.channel
+                player.session_chan = ctx.channel
             return player
 
         CustomContext.player = get_player
@@ -340,13 +335,6 @@ class Music(commands.Cog):
         if isinstance(event, (wavelink.TrackEnd, wavelink.TrackException)):
             await event.player.do_next()
 
-    # @wavelink.WavelinkMixin.listener("on_track_stuck")
-    # @wavelink.WavelinkMixin.listener("on_track_end")
-    # @wavelink.WavelinkMixin.listener("on_track_exception")
-    # async def on_player_stop(self, node, payload):
-    #     print("player stop")
-    #     await bot.wavelink.get_player(payload.player.guild_id, cls=Player).do_next()
-
     # @commands.Cog.listener()
     # async def on_voice_state_update(self, member, before, after):
     #     if before.channel and not after.channel:  # the member was in a vc and the member left the vc
@@ -360,7 +348,9 @@ class Music(commands.Cog):
     @commands.command()
     async def connect(self, ctx, voice_channel: discord.VoiceChannel = None):
         """
-        Connects the bot to a voice channel. If no voice channel is provided, the bot will try to connect to the voice channel the user is currently in.
+        Connects the bot to a voice channel.
+
+        `voice_channel` - The voice channel to connect to. If no voice channel is provided, the bot will try to connect to the voice channel the user is currently in.
         """
         if not voice_channel:
             try:
@@ -384,7 +374,9 @@ class Music(commands.Cog):
     )
     async def songqueue(self, ctx, limit: int = None):
         """
-        Get the first `x` songs in the queue. Fetches all songs if `x` is not provided.
+        View the songqueue.
+
+        `limit` - The amount of songs to get from the queue. Fetches all songs if this is not provided.
         """
         if limit is None:
             source = [(number, track) for number, track in enumerate(ctx.player.queue, start=1)]
@@ -396,6 +388,8 @@ class Music(commands.Cog):
     async def add(self, ctx, *, query):
         """
         Adds a song to the queue.
+
+        `query` - The song to add to the queue.
         """
         query_results = await bot.wavelink.get_tracks(f"ytsearch:{query}")
         if not query_results:
@@ -413,6 +407,8 @@ class Music(commands.Cog):
     async def remove(self, ctx, *, query):
         """
         Removes a song from the queue.
+
+        `query` - The song to remove from the queue.
         """
         query_results = await bot.wavelink.get_tracks(f"ytsearch:{query}")
         if not query_results:
@@ -430,7 +426,7 @@ class Music(commands.Cog):
     @commands.command()
     async def play(self, ctx):
         """
-        Resumes the player.
+        Resumes the player. To add songs to the queue use the command `songqueue add` instead.
         """
         if not ctx.player.is_paused:
             return await ctx.send("I am already playing!")
@@ -470,6 +466,8 @@ class Music(commands.Cog):
     async def volume(self, ctx, volume: int = None):
         """
         Adjusts the players volume.
+
+        `volume` - The new volume.
         """
         if volume is None:
             return await VolumeMenu(delete_message_after=True).start(ctx)
@@ -484,6 +482,8 @@ class Music(commands.Cog):
     async def fastforward(self, ctx, seconds: int):
         """
         Fast forward `x` seconds into the current song.
+
+        `seconds` - The amount of seconds to fast forward.
         """
         seek_position = ctx.player.position + (seconds * 1000)
         await ctx.player.seek(seek_position)
@@ -494,6 +494,8 @@ class Music(commands.Cog):
     async def rewind(self, ctx, seconds: int):
         """
         Rewind `n` seconds.
+
+        `seconds` - The amount of seconds to rewind.
         """
         seek_position = ctx.player.position - (seconds * 1000)
         await ctx.player.seek(seek_position)
@@ -504,7 +506,7 @@ class Music(commands.Cog):
     )
     async def disconnect(self, ctx):
         """
-        Disconnects the bot from a voice channel and stops the player.
+        Disconnects the bot from the voice channel and stops the player.
         """
         channel = ctx.guild.get_channel(ctx.player.channel_id)
         await ctx.player.destroy()
