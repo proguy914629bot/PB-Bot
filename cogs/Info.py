@@ -33,7 +33,7 @@ class DiscordStatusSource(menus.ListPageSource):
             if not self.summary["incidents"]:
                 embed.description = "There are no issues with discord as of yet."
             else:
-                for incident in summary['incidents']:
+                for incident in self.summary['incidents']:
                     embed.add_field(name=incident["name"], value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
         elif menu.current_page == 2:  # component overview
             embed = discord.Embed(title="Discord Status\nComponent Overview")
@@ -72,6 +72,7 @@ class Info(commands.Cog):
         embed.set_image(url=member.avatar_url)
         await ctx.send(embed=embed)
 
+    @commands.guild_only()
     @commands.command(
         aliases=["si", "gi", "server_info", "guild_info", "guildinfo"]
     )
@@ -122,9 +123,7 @@ class Info(commands.Cog):
         embed.set_footer(text=f"Created {humanize.precisedelta(datetime.datetime.now() - ctx.guild.created_at)} ago")
         await ctx.send(embed=embed)
 
-    @commands.command(
-        aliases=["discord_status", "dstatus"]
-    )
+    @commands.command(aliases=["discord_status", "dstatus"])
     async def discordstatus(self, ctx):
         """
         View the current status of discord. Source: https://discordstatus.com
@@ -135,6 +134,22 @@ class Info(commands.Cog):
             async with bot.session.get("https://discordstatus.com/history.json") as response:
                 response = await response.json()
             await menus.MenuPages(DiscordStatusSource(summary, response), clear_reactions_after=True).start(ctx)
+
+    @commands.guild_only()
+    @commands.command(aliases=["perms"])
+    async def permissions(self, ctx, *, member: discord.Member=None):
+        """
+        Display the permissions of a member.
+
+        `member` - The member whose permissions you would like to view. Defaults to you.
+        """
+        member = member or ctx.author
+        perms = []
+        for perm, value in member.permissions_in(ctx.channel):
+            value = "<:green_tick:795827014300598272>" if value else "<:red_tick:795827295541133372>"
+            perms.append(f"{value} {perm.replace('_', ' ').replace('guild', 'server')}")
+        embed = discord.Embed(title=f"Permissions for {member} in {ctx.channel}", description="\n".join(perms), colour=bot.embed_colour)
+        await ctx.send(embed=embed)
 
 
 def setup(_):
