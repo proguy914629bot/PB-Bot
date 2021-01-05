@@ -132,6 +132,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
             await bot.pool.execute("UPDATE prefixes SET guild_prefixes = '{pb}' WHERE guild_id = $1", ctx.guild.id)
             await ctx.send("Cleared the list of server prefixes.")
 
+    @commands.command()
+    async def invite(self, ctx):
+        """
+        Displays my invite link.
+        """
+        invite_url = discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(70635073))
+        embed = discord.Embed(title="Invite me to your server!", url=invite_url, colour=bot.embed_colour)
+        await ctx.send(embed=embed)
+
 
 def setup(_):
     bot.add_cog(BotInfo())
