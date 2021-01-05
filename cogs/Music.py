@@ -81,7 +81,7 @@ class PlayerMenu(menus.Menu):
     async def send_initial_message(self, ctx, channel):
         ctx.player.menus.append(self)
         self.build_embed()
-        return await ctx.send(embed=self.embed)
+        return await channel.send(embed=self.embed)
 
     async def build_edit(self):
         self.build_embed()
@@ -172,7 +172,7 @@ class VolumeMenu(menus.Menu):
     async def send_initial_message(self, ctx, channel):
         ctx.player.menus.append(self)
         self.build_embed()
-        return await ctx.send(embed=self.embed)
+        return await channel.send(embed=self.embed)
 
     def build_embed(self):
         volume_bar_number = int(self.ctx.player.volume / 100 * 2)
@@ -288,6 +288,7 @@ def is_playing():
 # songqueue add/remove
 # fastforward
 # rewind
+
 
 class Music(commands.Cog):
     """
