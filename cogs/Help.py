@@ -16,9 +16,8 @@ class HelpSource(menus.ListPageSource):
     async def format_page(self, menu, page):
         embed = discord.Embed(title="Help Menu for PB Bot", description=f"Page {menu.current_page + 1}/{self.get_max_pages()}", color=bot.embed_colour)
         embed.set_thumbnail(url=bot.user.avatar_url)
-        if self.ctx.clean_prefix.endswith(" "):
-            self.ctx.clean_prefix = self.ctx.clean_prefix.strip() + " "
-        embed.set_footer(text=f"Type {self.ctx.clean_prefix}help (command) for more info on a command.\nYou can also type {self.ctx.clean_prefix}help (category) for more info on a category.")
+        prefix = f"{self.ctx.clean_prefix.strip()} " if self.ctx.clean_prefix.endswith(" ") else self.ctx.clean_prefix
+        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\nYou can also type {prefix}help (category) for more info on a category.")
         if menu.current_page == 0:
             embed.add_field(name="About", value=bot.description)
         else:
@@ -39,7 +38,7 @@ class PaginatedHelpCommand(menus.MenuPages):
     async def on_info(self, _):
         embed = discord.Embed(title="How to Use the Paginator",
                               color=bot.embed_colour)
-        embed.add_field(name="Add and Remove Reactions to Navigate the Help Menu:", value = \
+        embed.add_field(name="Add and Remove Reactions to Navigate the Help Menu:", value= \
         "➡️ next page\n"
         "⬅️ previous page\n"
         "⏮️ first page\n"
@@ -69,7 +68,7 @@ class PaginatedHelpCommand(menus.MenuPages):
 
 class CustomHelpCommand(commands.HelpCommand):
     """
-    Custom help command for PB Bot.
+    Custom help command.
     """
     async def send_bot_help(self, _):
         data = {0: None}
@@ -94,17 +93,12 @@ class CustomHelpCommand(commands.HelpCommand):
         else:
             aliases = "\n".join(alias for alias in command.aliases)
         embed = discord.Embed(title=f"Help on Command `{command.name}`", description=command.help or 'No info available.', colour=bot.embed_colour)
-        embed.set_thumbnail(url=bot.user.avatar_url)
         embed.add_field(name="Signature:", value=f"{command.name} {command.signature}", inline=False)
         embed.add_field(name="Category:", value=f"{command.cog_name}", inline=False)
         embed.add_field(name="Aliases:", value=aliases, inline=False)
-
-        if self.clean_prefix.endswith(" "):
-            clean_prefix = self.clean_prefix.strip() + " "
-        else:
-            clean_prefix = self.clean_prefix
-
-        embed.set_footer(text=f"Type {clean_prefix}help (command) for more info on a command.\nYou can also type {clean_prefix}help (category) for more info on a category.")
+        embed.set_thumbnail(url=bot.user.avatar_url)
+        prefix = f"{self.clean_prefix.strip()} " if self.clean_prefix.endswith(" ") else self.clean_prefix
+        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\nYou can also type {prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def send_cog_help(self, cog):
@@ -113,15 +107,10 @@ class CustomHelpCommand(commands.HelpCommand):
         else:
             _commands = "\n".join(str(command) for command in cog.get_commands())
         embed = discord.Embed(title=f"Help on Category `{cog.qualified_name}`", description=cog.description or 'No info available.', colour=bot.embed_colour)
-        embed.set_thumbnail(url=bot.user.avatar_url)
         embed.add_field(name="Commands in this Category:", value=_commands)
-
-        if self.clean_prefix.endswith(" "):
-            clean_prefix = self.clean_prefix.strip() + " "
-        else:
-            clean_prefix = self.clean_prefix
-
-        embed.set_footer(text=f"Type {clean_prefix}help (command) for more info on a command.\nYou can also type {clean_prefix}help (category) for more info on a category.")
+        embed.set_thumbnail(url=bot.user.avatar_url)
+        prefix = f"{self.clean_prefix.strip()} " if self.clean_prefix.endswith(" ") else self.clean_prefix
+        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\nYou can also type {prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def send_group_help(self, group):
@@ -139,13 +128,8 @@ class CustomHelpCommand(commands.HelpCommand):
         embed.add_field(name="Aliases:", value=aliases, inline=False)
         embed.add_field(name="Commands in this Group:", value=_commands)
         embed.set_thumbnail(url=bot.user.avatar_url)
-
-        if self.clean_prefix.endswith(" "):
-            clean_prefix = self.clean_prefix.strip() + " "
-        else:
-            clean_prefix = self.clean_prefix
-
-        embed.set_footer(text=f"Type {clean_prefix}help (command) for more info on a command.\nYou can also type {clean_prefix}help (category) for more info on a category.")
+        prefix = f"{self.clean_prefix.strip()} " if self.clean_prefix.endswith(" ") else self.clean_prefix
+        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\nYou can also type {prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def command_not_found(self, string):
