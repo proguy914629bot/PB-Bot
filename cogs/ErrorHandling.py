@@ -43,26 +43,14 @@ async def on_command_error(ctx, error, *, from_local=False):
         embed.add_field(name="Error Message", value=error.text or 'No error message.')
         await ctx.send(embed=embed)
     elif isinstance(error, commands.MissingRequiredArgument):
-        embed = discord.Embed(title=f"`{str(error.param).split(':')[0]}` is a required argument that is missing.", description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.", colour=bot.embed_colour)
+        prefix = f"{ctx.clean_prefix.strip()} " if ctx.clean_prefix.endswith(" ") else ctx.clean_prefix
+        embed = discord.Embed(title=f"`{str(error.param).split(':')[0]}` is a required argument that is missing.", description=f"Confused? Run the command `{prefix}help {ctx.command}`.", colour=bot.embed_colour)
         await ctx.send(embed=embed)
+    elif isinstance(error, (commands.MessageNotFound, commands.ChannelNotFound, commands.MemberNotFound, commands.EmojiNotFound, commands.RoleNotFound, commands.UserNotFound)):
+        await ctx.send(error)
     elif isinstance(error, commands.BadArgument):
-        # argument = list(ctx.command.clean_params)[len(ctx.args[2:] if ctx.command.cog else ctx.args[1:])]
-        pattern = re.compile(r'(Converting to "(.+)" failed for parameter "(.+)"\.)|((.+) "(.+)" not found.)')
-        # groups:
-        # 0: entire match
-        # 1: entire match for error message 1
-        # 2: type for error message 1
-        # 3: argument name for error message 1
-
-        # 4: entire match for error message 2
-        # 5: "type" for error message 2
-        # 6: argument value for error message 2
-        match = pattern.match(str(error))
-        if match.group(1):  # error message 1
-            err_message = f"Value passed to `{match.group(3)}` is not a `{match.group(2) if match.group(2) != 'int' else 'number'}`."
-        else:  # error message 2
-            err_message = f"{match.group(5)} `{match.group(6)}` not found."
-        embed = discord.Embed(title=err_message, description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.", colour=bot.embed_colour)
+        prefix = f"{ctx.clean_prefix.strip()} " if ctx.clean_prefix.endswith(" ") else ctx.clean_prefix
+        embed = discord.Embed(title=str(error).replace("int", "integer"), description=f"Confused? Run the command `{prefix}help {ctx.command}`.", colour=bot.embed_colour)
         await ctx.send(embed=embed)
     elif isinstance(error, commands.TooManyArguments):
         await ctx.send(error)
