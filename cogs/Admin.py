@@ -167,7 +167,7 @@ class Admin(commands.Cog):
         await ctx.send(f"Successfully purged `{counter}` message(s).")
 
     @admin.command()
-    async def emojisnipe(self, ctx, name: str, emoji: bytes=None):
+    async def emojisnipe(self, ctx, name: str, emoji: discord.Emoji=None):
         """
         Snipes emojis for personal use.
 
@@ -205,7 +205,7 @@ class Admin(commands.Cog):
         if not data:
             return await ctx.send("Could not find entry in database.")
         if thing_to_view == "traceback":
-            if len(data) > 1991: # 1991 + len("```py\n```")
+            if len(data) > 1991:  # 1991 + len("```py\n```")
                 data = await bot.mystbin(data)
             else:
                 data = f"```py\n{data}```"
@@ -218,7 +218,7 @@ class Admin(commands.Cog):
 
         `error` - The errors to remove from the database.
         """
-        if re.match(r"\d+-\d+", error): # x-x
+        if re.match(r"\d+-\d+", error):  # x-x
             rnge = error.split("-")
             for i in range(int(rnge[0]), int(rnge[1]) + 1):
                 await bot.pool.execute("DELETE FROM errors WHERE err_num = $1", i)
@@ -233,6 +233,8 @@ class Admin(commands.Cog):
             await ctx.send("Invalid option.")
 
 # todo rewrite the error handling system
+# and sync command
+
 
 def setup(_):
     bot.add_cog(Admin())
