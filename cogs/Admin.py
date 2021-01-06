@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, menus
 import datetime
 import re
+import subprocess
 
 
 from dependencies import bot
@@ -231,6 +232,17 @@ class Admin(commands.Cog):
             await ctx.send("👌")
         else:
             await ctx.send("Invalid option.")
+
+    @commands.command()
+    async def sync(self, ctx):
+        """
+        Syncs code with github and restarts the bot.
+        """
+        out = subprocess.run("git pull", capture_output=True)
+        await ctx.send(f"```{out}```")
+        await ctx.message.add_reaction("🔁")
+        await bot.close()
+
 
 # todo rewrite the error handling system
 # and sync command
