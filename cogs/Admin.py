@@ -203,8 +203,10 @@ class Admin(commands.Cog):
         """
         View the errors in the database.
         """
-        data = await bot.pool.fetch("SELECT * FROM errors")
-        await menus.MenuPages(self.ErrorSource(data, per_page=1)).start(ctx)
+        errors = await bot.pool.fetch("SELECT * FROM errors")
+        if not errors:
+            return await ctx.send("No errors in the database! 🥳")
+        await menus.MenuPages(self.ErrorSource(errors, per_page=1)).start(ctx)
 
     @error.command()
     async def view(self, ctx, err_num: int):
