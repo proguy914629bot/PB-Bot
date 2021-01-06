@@ -233,7 +233,7 @@ class Admin(commands.Cog):
         else:
             await ctx.send("Invalid option.")
 
-    @commands.command()
+    @admin.command()
     async def sync(self, ctx):
         """
         Syncs code with github and restarts the bot.
