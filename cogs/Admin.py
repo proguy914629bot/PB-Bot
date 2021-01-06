@@ -185,32 +185,38 @@ class Admin(commands.Cog):
         await bot.get_guild(719665666696675369).create_custom_emoji(name=name, image=emoji)
         await ctx.send("👌")
 
+    class ErrorSource(menus.ListPageSource):
+        async def format_page(self, menu, page):
+            if isinstance(page, list):
+                page = page[0]
+            traceback = page['traceback'] if len(page['traceback']) < 2000 else await bot.mystbin(page['traceback'])
+            embed = discord.Embed(title=f"Error Number {page['err_num']}", description=f"```py\n{traceback}```")
+            for k, v in list(page.items()):
+                if k in ("err_num", "traceback"):
+                    continue
+                value = f"`{v}`" if len(v) < 1000 else await bot.mystbin(v)
+                embed.add_field(name=k.replace("_", " ").title(), value=value)
+            return embed
+
     @admin.group(invoke_without_command=True)
     async def error(self, ctx):
         """
         View the errors in the database.
         """
         data = await bot.pool.fetch("SELECT * FROM errors")
-        await ctx.send(f"There are `{len(data)}` errors in the database.")
+        await menus.MenuPages(self.ErrorSource(data, per_page=1)).start(ctx)
 
     @error.command()
-    async def view(self, ctx, err_num: int, thing_to_view="traceback"):
+    async def view(self, ctx, err_num: int):
         """
         View information about an error in the database.
 
         `err_num` - The error number to search for.
-        `thing_to_view` - The thing to view about the error. Defaults to "traceback".
         """
-        thing_to_view = thing_to_view.lower()
-        data = await bot.pool.fetchval(f"SELECT {thing_to_view} FROM errors WHERE err_num = $1", err_num)
-        if not data:
-            return await ctx.send("Could not find entry in database.")
-        if thing_to_view == "traceback":
-            if len(data) > 1991:  # 1991 + len("```py\n```")
-                data = await bot.mystbin(data)
-            else:
-                data = f"```py\n{data}```"
-        await ctx.send(data)
+        error = await bot.pool.fetch(f"SELECT * FROM errors WHERE err_num = $1", err_num)
+        if not error:
+            return await ctx.send(f"Could not find an error with the number `{err_num}` in the database.")
+        await menus.MenuPages(self.ErrorSource([error], per_page=1)).start(ctx)  # lazy me :p
 
     @error.command()
     async def fix(self, ctx, error):
