@@ -22,7 +22,12 @@ def get_prefix(bot, message):
     if not message.guild:
         prefixes = ['pb']
     else:
-        prefixes = bot.prefixes[message.guild.id]
+        try:
+            prefixes = bot.prefixes[message.guild.id]
+        except KeyError:
+            await bot.pool.execute("INSERT INTO prefixes VALUES ($1)", message.guild.id)
+            bot.prefixes[message.guild.id] = ['pb']
+            prefixes = bot.prefixes[message.guild.id]
     for prefix in prefixes:
         match = re.match(f"^({prefix}\s*).*", message.content, flags=re.IGNORECASE)
         if match:
