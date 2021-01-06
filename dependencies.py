@@ -18,7 +18,7 @@ handler = logging.FileHandler(filename='.\logs\discord.log', encoding='utf-8', m
 logger.addHandler(handler)
 
 
-def get_prefix(bot, message):
+async def get_prefix(bot, message):
     if not message.guild:
         prefixes = ['pb']
     else:
