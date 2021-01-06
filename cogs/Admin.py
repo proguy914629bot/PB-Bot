@@ -239,7 +239,7 @@ class Admin(commands.Cog):
         Syncs code with github and restarts the bot.
         """
         out = subprocess.check_output("git pull", shell=True)
-        await ctx.send(f"```{out}```")
+        await ctx.send(f"```{out.decode('utf-8')}```")
         await ctx.message.add_reaction("🔁")
         await bot.close()
 
