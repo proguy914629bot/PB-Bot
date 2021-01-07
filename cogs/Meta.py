@@ -127,29 +127,27 @@ class Meta(commands.Cog):
         url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
         async with bot.session.get(url) as r:
             response = await r.json()
-        if isinstance(response, dict):  # no definitions found
+        if isinstance(response, dict):
             return await ctx.send("Sorry pal, we couldn't find definitions for the word you were looking for.")
-        word_info = response[0]
-        embed = discord.Embed(title=f"Dictionary search results for `{word}`; found `{word_info['word']}`",
-                              description=f"**Phonetics**: {word_info['phonetics'][0]['text']} [audio]({word_info['phonetics'][0]['audio']})", colour=bot.embed_colour)
-        for item in word_info["meanings"]:
-            definition = item["definitions"][0]
-            try:
-                synonyms = " | ".join(synonym for synonym in definition["synonyms"])
-            except KeyError:
-                synonyms = "None"
-            try:
-                example = definition["example"]
-            except KeyError:
-                example = "None"
-            def_str = f"""
-            **Definition**: {definition["definition"]}
-            **Example**: {example}
-            **Synonyms**: {synonyms}\n\n
-            """
-            embed.add_field(name=item["partOfSpeech"], value=def_str)
-        embed.add_field(name="Raw JSON Response", value=f"[Click Here]({url})")
-        await ctx.send(embed=embed)
+        await menus.MenuPages(self.DefineSource(response[0]["meanings"], response[0])).start(ctx)
+
+    class DefineSource(menus.ListPageSource):
+        def __init__(self, data, response):
+            super().__init__(data, per_page=1)
+            self.response = response
+
+        async def format_page(self, menu, page):
+            embed = discord.Embed(title=f"Definitions for word `{self.response['word']}`",
+                        description= \
+                        f"{self.response['phonetics'][0]['text']}\n"
+                        f"[audio]({self.response['phonetics'][0]['audio']})",
+                        colour=bot.embed_colour)
+            defs = []
+            for definition in page["definitions"]:
+                example = definition.get("example", "None")
+                defs.append(f"**Definition:** {definition['definition']}\n**Example:** {example}")
+            embed.add_field(name=page["partOfSpeech"], value="\n\n".join(defs))
+            return embed
 
     # @bot.beta_command()
     # @commands.command(
