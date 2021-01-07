@@ -87,6 +87,7 @@ class Meta(commands.Cog):
         embed = discord.Embed(title=f"{data['safe_title']} (Comic Number `{data['num']}`)", description=data['alt'],
                               timestamp=datetime.datetime(year=int(data["year"]), month=int(data["month"]), day=int(data["day"])), colour=bot.embed_colour)
         embed.set_image(url=data['img'])
+        embed.set_footer(text="Created")
         await ctx.send(embed=embed)
 
     def _ocr(self, bytes):
