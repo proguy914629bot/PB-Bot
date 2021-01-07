@@ -85,7 +85,7 @@ class Meta(commands.Cog):
                 return await ctx.send("Server error.")
             data = await resp.json()
         embed = discord.Embed(title=f"{data['safe_title']} (Comic Number `{data['num']}`)", description=data['alt'],
-                              timestamp=datetime.datetime(year=data["year"], month=data["month"], day=data["day"]), colour=bot.embed_colour)
+                              timestamp=datetime.datetime(year=int(data["year"]), month=int(data["month"]), day=int(data["day"])), colour=bot.embed_colour)
         embed.set_image(url=data['img'])
         await ctx.send(embed=embed)
 
