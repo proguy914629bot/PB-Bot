@@ -347,7 +347,7 @@ class Music(commands.Cog):
     #             controller.current_dj = None
 
     @commands.command()
-    async def connect(self, ctx, voice_channel: discord.VoiceChannel = None):
+    async def connect(self, ctx, *, voice_channel: discord.VoiceChannel = None):
         """
         Connects the bot to a voice channel.
 
