@@ -1,5 +1,5 @@
 # PB Bot
-An easy to use general purpose discord bot written in Python.
+An easy to use, multipurpose discord bot written in Python.
 
 [Invite Link](https://discord.com/oauth2/authorize?client_id=719907834120110182&scope=bot&permissions=104189127)
 
