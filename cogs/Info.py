@@ -78,7 +78,7 @@ class Info(commands.Cog):
     )
     async def serverinfo(self, ctx):
         """
-        Displays information for the current server.
+        Displays information about the current server.
         """
         animated_emojis = [emoji for emoji in ctx.guild.emojis if emoji.animated]
         not_animated_emojis = [emoji for emoji in ctx.guild.emojis if not emoji.animated]
