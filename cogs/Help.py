@@ -134,7 +134,7 @@ class CustomHelpCommand(commands.HelpCommand):
 
     async def command_not_found(self, string):
         match, ratio = process.extractOne(string, bot.command_list)
-        if ratio < 75:
+        if ratio < 80:
             return f"Command '{string}' is not found."
         return f"Command '{string}' is not found. Did you mean `{match}`?"
 
