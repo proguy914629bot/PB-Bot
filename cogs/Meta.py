@@ -74,21 +74,22 @@ class Meta(commands.Cog):
 
         `comic_number` - The comic number to get. Defaults to a random number.
         """
-        if not comic_number:
-            async with bot.session.get("https://xkcd.com/info.0.json") as resp:
-                max_num = (await resp.json())["num"]
-            comic_number = random.randint(1, max_num)
-        async with bot.session.get(f"https://xkcd.com/{comic_number}/info.0.json") as resp:
-            if resp.status in range(400, 500):
-                return await ctx.send("Couldn't find a comic with that number.")
-            elif resp.status >= 500:
-                return await ctx.send("Server error.")
-            data = await resp.json()
-        embed = discord.Embed(title=f"{data['safe_title']} (Comic Number `{data['num']}`)", description=data['alt'],
-                              timestamp=datetime.datetime(year=int(data["year"]), month=int(data["month"]), day=int(data["day"])), colour=bot.embed_colour)
-        embed.set_image(url=data['img'])
-        embed.set_footer(text="Created")
-        await ctx.send(embed=embed)
+        async with ctx.typing():
+            if not comic_number:
+                async with bot.session.get("https://xkcd.com/info.0.json") as resp:
+                    max_num = (await resp.json())["num"]
+                comic_number = random.randint(1, max_num)
+            async with bot.session.get(f"https://xkcd.com/{comic_number}/info.0.json") as resp:
+                if resp.status in range(400, 500):
+                    return await ctx.send("Couldn't find a comic with that number.")
+                elif resp.status >= 500:
+                    return await ctx.send("Server error.")
+                data = await resp.json()
+            embed = discord.Embed(title=f"{data['safe_title']} (Comic Number `{data['num']}`)", description=data['alt'],
+                                  timestamp=datetime.datetime(year=int(data["year"]), month=int(data["month"]), day=int(data["day"])), colour=bot.embed_colour)
+            embed.set_image(url=data['img'])
+            embed.set_footer(text="Created:")
+            await ctx.send(embed=embed)
 
     def _ocr(self, bytes):
         img = cv2.imdecode(np.fromstring(bytes, np.uint8), 1)
