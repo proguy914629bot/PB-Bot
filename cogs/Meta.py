@@ -24,15 +24,15 @@ class Meta(commands.Cog):
     Commands that don't belong to any specific category.
     """
     @commands.command()
-    async def mystbin(self, ctx, *, text_to_paste=None):
+    async def mystbin(self, ctx, *, text=None):
         """
         Paste text or a text file to https://mystb.in.
 
-        `text_to_paste` - The text to paste to mystbin.
+        `text` - The text to paste to mystbin.
         """
         data = []
-        if text_to_paste:
-            data.append(text_to_paste)
+        if text:
+            data.append(text)
         if ctx.message.attachments:
             data.append("\n\nATTACHMENTS\n\n")
             for attachment in ctx.message.attachments:
@@ -46,15 +46,15 @@ class Meta(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def hastebin(self, ctx, *, text_to_paste=None):
+    async def hastebin(self, ctx, *, text=None):
         """
         Paste text or a text file to https://hastebin.com.
 
-        `text_to_paste` - The text to paste to hastebin.
+        `text` - The text to paste to hastebin.
         """
         data = []
-        if text_to_paste:
-            data.append(text_to_paste)
+        if text:
+            data.append(text)
         if ctx.message.attachments:
             data.append("\n\nATTACHMENTS\n\n")
             for attachment in ctx.message.attachments:
@@ -88,7 +88,6 @@ class Meta(commands.Cog):
 
     def _ocr(self, bytes):
         img = cv2.imdecode(np.fromstring(bytes, np.uint8), 1)
-        _, buffer = cv2.imencode(".png", img)
         return pytesseract.image_to_string(img)
 
     @commands.command()
@@ -124,14 +123,11 @@ class Meta(commands.Cog):
         async with bot.session.get(url) as r:
             response = await r.json()
         if isinstance(response, dict):  # no definitions found
-            return await ctx.send(response["message"])
+            return await ctx.send("Sorry pal, we couldn't find definitions for the word you were looking for.")
         word_info = response[0]
         embed = discord.Embed(title=f"Dictionary search results for `{word}`; found `{word_info['word']}`",
-                              description=f"""
-        **Phonetics**: {word_info["phonetics"][0]["text"]} [audio]({word_info["phonetics"][0]["audio"]})
-        """, colour=bot.embed_colour)
+                              description=f"**Phonetics**: {word_info['phonetics'][0]['text']} [audio]({word_info['phonetics'][0]['audio']})", colour=bot.embed_colour)
         for item in word_info["meanings"]:
-            def_str = ""
             definition = item["definitions"][0]
             try:
                 synonyms = " | ".join(synonym for synonym in definition["synonyms"])
@@ -141,7 +137,7 @@ class Meta(commands.Cog):
                 example = definition["example"]
             except KeyError:
                 example = "None"
-            def_str += f"""
+            def_str = f"""
             **Definition**: {definition["definition"]}
             **Example**: {example}
             **Synonyms**: {synonyms}\n\n
