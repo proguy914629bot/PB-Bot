@@ -144,9 +144,8 @@ class Meta(commands.Cog):
                         colour=bot.embed_colour)
             defs = []
             for definition in page["definitions"]:
-                example = definition.get("example", "None")
-                defs.append(f"**Definition:** {definition['definition']}\n**Example:** {example}")
-            embed.add_field(name=page["partOfSpeech"], value="\n\n".join(defs))
+                defs.append(f"**Definition:** {definition['definition']}\n**Example:** {definition.get('example', 'None')}")
+            embed.add_field(name=f"`{page['partOfSpeech']}`", value="\n\n".join(defs))
             return embed
 
     # @bot.beta_command()
