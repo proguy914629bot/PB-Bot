@@ -52,7 +52,7 @@ class Admin(commands.Cog):
         if "all" in args or "All" in args:
             cogs_to_load = bot.coglist
         else:
-            cogs_to_load = [f"cogs.{cog}" if cog != "jishaku" else "jishaku" for cog in args]
+            cogs_to_load = [f"cogs.{cog}" if cog not in ("Jishaku", "jishaku") else "jishaku" for cog in args]
         finished_cog_list = []
         for cog in cogs_to_load:
             try:
@@ -73,7 +73,7 @@ class Admin(commands.Cog):
         if "all" in args or "All" in args:
             cogs_to_unload = bot.coglist
         else:
-            cogs_to_unload = [f"cogs.{cog}" if cog != "jishaku" else "jishaku" for cog in args]
+            cogs_to_unload = [f"cogs.{cog}" if cog not in ("Jishaku", "jishaku") else "jishaku" for cog in args]
         try:
             cogs_to_unload.remove("cogs.Admin")  # :^)
         except ValueError:
@@ -98,7 +98,7 @@ class Admin(commands.Cog):
         if "all" in args or "All" in args:
             cogs_to_reload = list(bot.extensions.keys())
         else:
-            cogs_to_reload = [f"cogs.{cog}" if cog != "jishaku" else "jishaku" for cog in args]
+            cogs_to_reload = [f"cogs.{cog}" if cog not in ("Jishaku", "jishaku") else "jishaku" for cog in args]
         finished_cog_list = []
         for cog in cogs_to_reload:
             try:
