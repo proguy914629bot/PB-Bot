@@ -252,9 +252,5 @@ class Admin(commands.Cog):
         await bot.close()
 
 
-# todo rewrite the error handling system
-# and sync command
-
-
 def setup(_):
     bot.add_cog(Admin())
