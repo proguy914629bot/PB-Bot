@@ -151,6 +151,37 @@ class Info(commands.Cog):
         embed = discord.Embed(title=f"Permissions for {member} in {ctx.channel}", description="\n".join(perms), colour=bot.embed_colour)
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def define(self, ctx, *, word):
+        """
+        Search up the definition of a word. Source: https://dictionaryapi.dev/
+
+        `word` - The word to search up.
+        """
+        url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+        async with bot.session.get(url) as r:
+            response = await r.json()
+        if isinstance(response, dict):
+            return await ctx.send("Sorry pal, I couldn't find definitions for the word you were looking for.")
+        await menus.MenuPages(self.DefineSource(response[0]["meanings"], response[0]), clear_reactions_after=True).start(ctx)
+
+    class DefineSource(menus.ListPageSource):
+        def __init__(self, data, response):
+            super().__init__(data, per_page=1)
+            self.response = response
+
+        async def format_page(self, menu, page):
+            embed = discord.Embed(title=f"Definitions for word `{self.response['word']}`",
+                        description= \
+                        f"{self.response['phonetics'][0]['text']}\n"
+                        f"[audio]({self.response['phonetics'][0]['audio']})",
+                        colour=bot.embed_colour)
+            defs = []
+            for definition in page["definitions"]:
+                defs.append(f"**Definition:** {definition['definition']}\n**Example:** {definition.get('example', 'None')}")
+            embed.add_field(name=f"`{page['partOfSpeech']}`", value="\n\n".join(defs))
+            return embed
+
 
 def setup(_):
     bot.add_cog(Info())
