@@ -23,7 +23,7 @@ async def on_command_error(ctx, error, *, from_local=False):
     if isinstance(error, commands.CommandNotFound):
         failed_command = re.match(f"^({ctx.prefix})\s*(.*)", ctx.message.content, flags=re.IGNORECASE).group(2)
         match, ratio = process.extractOne(failed_command, bot.command_list)
-        if ratio < 75:
+        if ratio < 80:
             return
         await ctx.send(f"Command '{failed_command}' is not found. Did you mean `{match}`?")
     elif isinstance(error, discord.ext.commands.CommandOnCooldown):
@@ -34,14 +34,20 @@ async def on_command_error(ctx, error, *, from_local=False):
         await ctx.send("This command can only be used in a server.")
     elif isinstance(error, commands.MissingPermissions):
         perms = bot.utils.humanize_list(error.missing_perms).replace('_', ' ').replace('guild', 'server')
-        await ctx.send(f"You need the `{perms}` permission(s) to use this command.")
+        await ctx.send(f"You are missing the `{perms}` permission(s) to use this command.")
+    elif isinstance(error, commands.BotMissingPermissions):
+        perms = bot.utils.humanize_list(error.missing_perms).replace('_', ' ').replace('guild', 'server')
+        await ctx.send(f"I am missing the `{perms}` permission(s) to use this command.")
     elif isinstance(error, discord.HTTPException):
         embed = discord.Embed(title=f"An HTTP Exception Occurred", description= \
             f"HTTP error code `{error.status}`\n"
             f"Discord error code `{error.code}` ([understanding what the error codes mean](https://discord.com/developers/docs/topics/opcodes-and-status-codes#http-http-response-codes))",
             colour=bot.embed_colour)
         embed.add_field(name="Error Message", value=error.text or 'No error message.')
-        await ctx.send(embed=embed)
+        try:
+            await ctx.send(embed=embed)
+        except discord.HTTPException:  # missing send messages permission or discord is having issues
+            pass
     elif isinstance(error, commands.MissingRequiredArgument):
         prefix = f"{ctx.clean_prefix.strip()} " if ctx.clean_prefix.endswith(" ") else ctx.clean_prefix
         embed = discord.Embed(title=f"`{str(error.param).split(':')[0]}` is a required argument that is missing.", description=f"Confused? Run the command `{prefix}help {ctx.command}`.", colour=bot.embed_colour)
