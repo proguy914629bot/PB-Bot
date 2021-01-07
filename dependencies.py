@@ -26,8 +26,7 @@ async def get_prefix(bot, message):
             prefixes = bot.prefixes[message.guild.id]
         except KeyError:
             await bot.pool.execute("INSERT INTO prefixes VALUES ($1)", message.guild.id)
-            bot.prefixes[message.guild.id] = ['pb']
-            prefixes = bot.prefixes[message.guild.id]
+            prefixes = bot.prefixes[message.guild.id] = ['pb']
     for prefix in prefixes:
         match = re.match(f"^({prefix}\s*).*", message.content, flags=re.IGNORECASE)
         if match:
@@ -87,7 +86,7 @@ class PB_Bot(commands.Bot):
             return
         return commands.check(predicate)
 
-    def whitelisted_servers_check(self):
+    def whitelisted_servers(self):
         async def predicate(ctx):
             """todo:"""
 
@@ -150,10 +149,6 @@ class CustomContext(commands.Context):
     """
     Custom context class.
     """
-    @property
-    def timeit(self):
-        return bot.utils.StopWatch
-
     @property
     def clean_prefix(self):
         return re.sub(f"<@!?{bot.user.id}>", "@PB Bot", self.prefix)
