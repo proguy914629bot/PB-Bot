@@ -54,7 +54,7 @@ class PB_Bot(commands.Bot):
         self.utils = utils
         self.command_list = []
         self.embed_colour = 0x01ad98
-        self.prefixes = {} # {guildId: [pb, PB, Pb]}
+        self.prefixes = {}  # {guildId: [pb, PB, Pb]}
 
     async def get_context(self, message, *, cls=None):
         return await super().get_context(message, cls=cls or CustomContext)
