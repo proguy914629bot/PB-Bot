@@ -158,12 +158,13 @@ class Info(commands.Cog):
 
         `word` - The word to search up.
         """
-        url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
-        async with bot.session.get(url) as r:
-            response = await r.json()
-        if isinstance(response, dict):
-            return await ctx.send("Sorry pal, I couldn't find definitions for the word you were looking for.")
-        await menus.MenuPages(self.DefineSource(response[0]["meanings"], response[0]), clear_reactions_after=True).start(ctx)
+        async with ctx.typing():
+            url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+            async with bot.session.get(url) as r:
+                response = await r.json()
+            if isinstance(response, dict):
+                return await ctx.send("Sorry pal, I couldn't find definitions for the word you were looking for.")
+            await menus.MenuPages(self.DefineSource(response[0]["meanings"], response[0]), clear_reactions_after=True).start(ctx)
 
     class DefineSource(menus.ListPageSource):
         def __init__(self, data, response):
