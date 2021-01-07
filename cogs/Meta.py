@@ -74,16 +74,19 @@ class Meta(commands.Cog):
 
         `comic_number` - The comic number to get. Defaults to a random number.
         """
-        if comic_number is None:
-            comic_number = random.randint(1, 2406)
-        if comic_number == 0:
-            return await ctx.send("There is no comic number zero.")
-        if comic_number > 2406:
-            return await ctx.send("Xkcd has only 2406 comics.")
-        async with bot.session.get(f"https://xkcd.com/{comic_number}/info.0.json") as r:
-            response = await r.json()
-        embed = discord.Embed(title=response["title"], colour=bot.embed_colour)
-        embed.set_image(url=response["img"])
+        if not comic_number:
+            async with bot.session.get("https://xkcd.com/info.0.json") as resp:
+                max_num = (await resp.json())["num"]
+            comic_number = random.randint(1, max_num)
+        async with bot.session.get(f"https://xkcd.com/{comic_number}/info.0.json") as resp:
+            if resp.status in range(400, 500):
+                return await ctx.send("Couldn't find a comic with that number.")
+            elif resp.status >= 500:
+                return await ctx.send("Server error.")
+            data = await resp.json()
+        embed = discord.Embed(title=f"{data['safe_title']} (Comic Number `{data['num']}`)", description=data['alt'],
+                              timestamp=datetime.datetime(year=data["year"], month=data["month"], day=data["day"]), colour=bot.embed_colour)
+        embed.set_image(url=data['img'])
         await ctx.send(embed=embed)
 
     def _ocr(self, bytes):
