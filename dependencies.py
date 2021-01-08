@@ -42,7 +42,7 @@ class PB_Bot(commands.Bot):
             case_insensitive=True,
             intents=discord.Intents.all(),
             owner_id=config["owner_id"],
-            description=config["description"]
+            description="An easy to use, multipurpose discord bot written in Python by PB#4162."
         )
         self.start_time = datetime.datetime.now()
         self.session = aiohttp.ClientSession()
@@ -54,6 +54,7 @@ class PB_Bot(commands.Bot):
         self.command_list = []
         self.embed_colour = 0x01ad98
         self.prefixes = {}  # {guildId: [pb, PB, Pb]}
+        self.github_url = "https://github.com/PB4162/PB-Bot"
 
     async def get_context(self, message, *, cls=None):
         return await super().get_context(message, cls=cls or CustomContext)
