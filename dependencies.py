@@ -93,6 +93,13 @@ class PB_Bot(commands.Bot):
 
         return commands.check(predicate)
 
+    @tasks.loop(minutes=30)
+    async def presence_update(self):
+        await self.wait_until_ready()
+        await self.change_presence(
+            status=discord.Status.idle,
+            activity=discord.Activity(type=discord.ActivityType.watching, name=f"{len(self.guilds)} servers and {len(self.users)} users"))
+
     async def load_prefixes(self):
         for entry in await self.pool.fetch("SELECT * FROM prefixes"):
             self.prefixes[entry["guild_id"]] = entry["guild_prefixes"]
@@ -132,6 +139,7 @@ class PB_Bot(commands.Bot):
                                     self.command_list.append(str(subcommand3))
                                     self.command_list.extend([f"{subcommand2} {subcommand3_alias}" for subcommand3_alias in subcommand3.aliases])
 
+        self.presence_update.start()
         super().run(*args, **kwargs)
 
     async def mystbin(self, data):
