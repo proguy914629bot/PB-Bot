@@ -5,6 +5,7 @@ import humanize
 import psutil
 import time
 import sys
+import inspect
 
 from dependencies import bot
 
@@ -59,7 +60,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
                     )
         p = psutil.Process()
         m = p.memory_full_info()
-        embed.add_field(name="Statistics",
+        embed.add_field(name="System",
                         value= \
                         f"• `{p.cpu_percent()}%` cpu\n"
                         f"• `{humanize.naturalsize(m.rss)}` physical memory\n"
@@ -141,13 +142,24 @@ class BotInfo(commands.Cog, name="Bot Info"):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def source(self, ctx):
+    async def source(self, ctx, command = None):
         """
-        View my source code.
+        View my source code for a specific command.
+
+        `command` - The command to view the source code of.
         """
-        embed = discord.Embed(title="Here is my source code.",
-                              description="Don't forget the license! (A star would also be appreciated ^^)", url=bot.github_url, colour=bot.embed_colour)
-        await ctx.send(embed=embed)
+        if not command:
+            embed = discord.Embed(title="Here is my source code.",
+                                  description="Don't forget the license! (A star would also be appreciated ^^)", url=bot.github_url, colour=bot.embed_colour)
+            return await ctx.send(embed=embed)
+        command = bot.get_command(command)
+        if not command:
+            return await ctx.send("Couldn't find command.")
+        lines, starting_line_num = inspect.getsourcelines(command.callback.__code__)
+        print(starting_line_num)
+        ending_line_num = starting_line_num + len(lines) - 1
+        filepath = f"{command.callback.__module__.replace('.', '/')}.py"
+        await ctx.send(f"<https://github.com/PB4162/PB-Bot/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}>")
 
 
 def setup(_):
