@@ -141,6 +141,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
         embed = discord.Embed(title="Invite me to your server!", url=invite_url, colour=bot.embed_colour)
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def source(self, ctx):
+        """
+        View my source code.
+        """
+        embed = discord.Embed(title="Here is my source code.",
+                              description="Don't forget the license! (A star would also be appreciated ^^)", url=bot.github_url, colour=bot.embed_colour)
+        await ctx.send(embed=embed)
+
 
 def setup(_):
     bot.add_cog(BotInfo())
