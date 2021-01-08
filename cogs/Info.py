@@ -181,6 +181,7 @@ class Info(commands.Cog):
             for definition in page["definitions"]:
                 defs.append(f"**Definition:** {definition['definition']}\n**Example:** {definition.get('example', 'None')}")
             embed.add_field(name=f"`{page['partOfSpeech']}`", value="\n\n".join(defs))
+            embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
             return embed
 
 
