@@ -137,8 +137,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Displays my invite link.
         """
-        invite_url = discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(104189127))
-        embed = discord.Embed(title="Invite me to your server!", url=invite_url, colour=bot.embed_colour)
+        embed = discord.Embed(title="Invite me to your server!", url=bot.invite_url, colour=bot.embed_colour)
         await ctx.send(embed=embed)
 
     @commands.command()

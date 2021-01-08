@@ -55,6 +55,7 @@ class PB_Bot(commands.Bot):
         self.embed_colour = 0x01ad98
         self.prefixes = {}  # {guildId: [pb, PB, Pb]}
         self.github_url = "https://github.com/PB4162/PB-Bot"
+        self.invite_url = discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(104189127))
 
     async def get_context(self, message, *, cls=None):
         return await super().get_context(message, cls=cls or CustomContext)
