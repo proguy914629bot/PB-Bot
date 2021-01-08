@@ -55,7 +55,7 @@ class PB_Bot(commands.Bot):
         self.embed_colour = 0x01ad98
         self.prefixes = {}  # {guildId: [pb, PB, Pb]}
         self.github_url = "https://github.com/PB4162/PB-Bot"
-        self.invite_url = discord.utils.oauth_url(self.user.id, permissions=discord.Permissions(104189127))
+        self.invite_url = None  # have to set it in `run` because `self.user.id` hasn't been set yet
 
     async def get_context(self, message, *, cls=None):
         return await super().get_context(message, cls=cls or CustomContext)
@@ -121,6 +121,7 @@ class PB_Bot(commands.Bot):
         for cog in self.coglist:
             self.load_extension(cog)
 
+        self.invite_url = discord.utils.oauth_url(self.user.id, permissions=discord.Permissions(104189127))
         self.loop.run_until_complete(self.schemas())
         self.loop.run_until_complete(self.load_prefixes())
 
