@@ -146,7 +146,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         View my source code for a specific command.
 
-        `command` - The command to view the source code of.
+        `command` - The command to view the source code of (Optional).
         """
         if not command:
             embed = discord.Embed(title="Here is my source code.",
@@ -158,7 +158,11 @@ class BotInfo(commands.Cog, name="Bot Info"):
         lines, starting_line_num = inspect.getsourcelines(command.callback.__code__)
         ending_line_num = starting_line_num + len(lines) - 1
         filepath = f"{command.callback.__module__.replace('.', '/')}.py"
-        await ctx.send(f"<https://github.com/PB4162/PB-Bot/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}>")
+        embed = discord.Embed(title=f"Here is my source code for the `{command}` command.",
+                              description="Don't forget the license! (A star would also be appreciated ^^)",
+                              url=f"https://github.com/PB4162/PB-Bot/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}",
+                              colour=bot.embed_colour)
+        await ctx.send(embed=embed)
 
 
 def setup(_):
