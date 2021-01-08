@@ -142,7 +142,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def source(self, ctx, command = None):
+    async def source(self, ctx, *, command=None):
         """
         View my source code for a specific command.
 
@@ -156,7 +156,6 @@ class BotInfo(commands.Cog, name="Bot Info"):
         if not command:
             return await ctx.send("Couldn't find command.")
         lines, starting_line_num = inspect.getsourcelines(command.callback.__code__)
-        print(starting_line_num)
         ending_line_num = starting_line_num + len(lines) - 1
         filepath = f"{command.callback.__module__.replace('.', '/')}.py"
         await ctx.send(f"<https://github.com/PB4162/PB-Bot/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}>")
