@@ -152,16 +152,25 @@ class BotInfo(commands.Cog, name="Bot Info"):
             embed = discord.Embed(title="Here is my source code.",
                                   description="Don't forget the license! (A star would also be appreciated ^^)", url=bot.github_url, colour=bot.embed_colour)
             return await ctx.send(embed=embed)
-        command = bot.get_command(command)
+
+        command = bot.help_command if command.lower() == "help" else bot.get_command(command)
         if not command:
             return await ctx.send("Couldn't find command.")
-        lines, starting_line_num = inspect.getsourcelines(command.callback.__code__)
+
+        if isinstance(command, commands.HelpCommand):
+            lines, starting_line_num = inspect.getsourcelines(type(command))
+            filepath = f"{command.__module__.replace('.', '/')}.py"
+        else:
+            lines, starting_line_num = inspect.getsourcelines(command.callback.__code__)
+            filepath = f"{command.callback.__module__.replace('.', '/')}.py"
+
         ending_line_num = starting_line_num + len(lines) - 1
-        filepath = f"{command.callback.__module__.replace('.', '/')}.py"
-        embed = discord.Embed(title=f"Here is my source code for the `{command}` command.",
-                              description="Don't forget the license! (A star would also be appreciated ^^)",
-                              url=f"https://github.com/PB4162/PB-Bot/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}",
-                              colour=bot.embed_colour)
+        embed = discord.Embed(
+            title=f"Here is my source code for the `{command if not isinstance(command, commands.HelpCommand) else 'help'}` command.",
+            # don't want the command name to be "<HelpCommand object at 0x>"
+            description="Don't forget the license! (A star would also be appreciated ^^)",
+            url=f"https://github.com/PB4162/PB-Bot/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}",
+            colour=bot.embed_colour)
         await ctx.send(embed=embed)
 
 
