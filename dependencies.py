@@ -56,6 +56,19 @@ class PB_Bot(commands.Bot):
         self.prefixes = {}  # {guildId: [pb, PB, Pb]}
         self.github_url = "https://github.com/PB4162/PB-Bot"
         self.invite_url = discord.utils.oauth_url("719907834120110182", permissions=discord.Permissions(104189127))
+        self.emoji_dict = {
+            "red_line": "<:red_line:793233362298601472>",
+            "white_line": "<:white_line:793235072437846116>",
+            "blue_button": "<:blue_button:776982842957234186>",
+            "voice_channel": "<:voice_channel:787460989409951757>",
+            "text_channel": "<:text_channel:787461133963231263>",
+            "red_tick": "<:red_tick:795827295541133372>",
+            "green_tick": "<:green_tick:795827014300598272>",
+            "online": "<:online:787461591968645130>",
+            "offline": "<:offline:787461784318902303>",
+            "idle": "<:idle:787461645038256149>",
+            "dnd": "<:dnd:787461694455808070>",
+        }
 
     async def get_context(self, message, *, cls=None):
         return await super().get_context(message, cls=cls or CustomContext)

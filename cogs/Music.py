@@ -91,7 +91,7 @@ class PlayerMenu(menus.Menu):
         max_song_length = float(f"{self.ctx.player.current.length / 1000:.2f}")
         current_position = float(f"{self.ctx.player.position / 1000:.2f}")
         bar_number = int((int(current_position) / int(max_song_length)) * 20)
-        bar = f"\||{bar_number * '<:red_line:793233362298601472>'}⚫{(19 - bar_number) * '<:white_line:793235072437846116>'}||"
+        bar = f"\||{bar_number * bot.emoji_dict['red_line']}⚫{(19 - bar_number) * bot.emoji_dict['white_line']}||"
         try:
             coming_up = self.ctx.player.queue[self.ctx.player.queue_position]
         except IndexError:
@@ -176,7 +176,7 @@ class VolumeMenu(menus.Menu):
 
     def build_embed(self):
         volume_bar_number = int(self.ctx.player.volume / 100 * 2)
-        volume_bar = [(volume_bar_number - 1) * '🟦'] + ["<:blue_button:776982842957234186>"] + [(20 - volume_bar_number) * '⬜']
+        volume_bar = [(volume_bar_number - 1) * '🟦'] + [bot.emoji_dict["blue_button"]] + [(20 - volume_bar_number) * '⬜']
         self.embed = discord.Embed(title="Volume Bar", description="".join(item for item in volume_bar), colour=bot.embed_colour)
         self.embed.set_footer(text=f"Current Volume: {self.ctx.player.volume}")
 

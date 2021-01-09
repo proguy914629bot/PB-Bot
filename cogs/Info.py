@@ -98,8 +98,8 @@ class Info(commands.Cog):
         f"**Owner ID**: {ctx.guild.owner.id}", colour=bot.embed_colour)
 
         embed.add_field(name="General", value= \
-        f"**Members**: {member_statuses[discord.Status.online]} <:online:787461591968645130> {member_statuses[discord.Status.idle]} <:idle:787461645038256149> {member_statuses[discord.Status.do_not_disturb]} <:dnd:787461694455808070> {member_statuses[discord.Status.offline]} <:offline:787461784318902303> ({len(ctx.guild.members)} total)\n"
-        f"**Channels**: {len(ctx.guild.text_channels)} <:text_channel:787461133963231263> {len(ctx.guild.voice_channels)} <:voice_channel:787460989409951757> ({len(ctx.guild.channels)} total)\n"
+        f"**Members**: {member_statuses[discord.Status.online]} {bot.emoji_dict['online']} {member_statuses[discord.Status.idle]} {bot.emoji_dict['idle']} {member_statuses[discord.Status.do_not_disturb]} {bot.emoji_dict['dnd']} {member_statuses[discord.Status.offline]} {bot.emoji_dict['offline']} ({len(ctx.guild.members)} total)\n"
+        f"**Channels**: {len(ctx.guild.text_channels)} {bot.emoji_dict['text_channel']} {len(ctx.guild.voice_channels)} {bot.emoji_dict['voice_channel']} ({len(ctx.guild.channels)} total)\n"
         f"**Categories**: {len(ctx.guild.categories)}\n"
         f"**Region**: {ctx.guild.region}\n"
         f"**Verification Level**: {ctx.guild.verification_level}\n"
@@ -146,7 +146,7 @@ class Info(commands.Cog):
         member = member or ctx.author
         perms = []
         for perm, value in member.permissions_in(ctx.channel):
-            value = "<:green_tick:795827014300598272>" if value else "<:red_tick:795827295541133372>"
+            value = bot.emoji_dict["green_tick"] if value else bot.emoji_dict["red_tick"]
             perms.append(f"{value} {perm.replace('_', ' ').replace('guild', 'server')}")
         embed = discord.Embed(title=f"Permissions for {member} in {ctx.channel}", description="\n".join(perms), colour=bot.embed_colour)
         await ctx.send(embed=embed)
