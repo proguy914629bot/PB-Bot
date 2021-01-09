@@ -13,3 +13,5 @@ personal/
 venv/
 
 config.py
+
+temp.json

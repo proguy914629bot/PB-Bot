@@ -10,6 +10,8 @@ from config import config
 import logging
 import asyncpg
 import utils
+from collections import Counter
+import json
 
 
 logger = logging.getLogger("discord")
@@ -56,6 +58,7 @@ class PB_Bot(commands.Bot):
         self.prefixes = {}  # {guildId: [pb, PB, Pb]}
         self.github_url = "https://github.com/PB4162/PB-Bot"
         self.invite_url = discord.utils.oauth_url("719907834120110182", permissions=discord.Permissions(104189127))
+        self.command_usage = Counter()
         self.emoji_dict = {
             "red_line": "<:red_line:793233362298601472>",
             "white_line": "<:white_line:793235072437846116>",
@@ -114,6 +117,32 @@ class PB_Bot(commands.Bot):
             status=discord.Status.idle,
             activity=discord.Activity(type=discord.ActivityType.watching, name=f"{len(self.guilds)} servers and {len(self.users)} users"))
 
+    @tasks.loop(hours=24)
+    async def clear_command_usage(self):
+        if os.path.exists("temp.json"):
+            os.remove("temp.json")
+        self.command_usage.clear()
+
+    @clear_command_usage.before_loop
+    async def clear_command_usage_before(self):
+        if os.path.exists("temp.json"):
+            with open("temp.json") as f:
+                self.command_usage.update(json.load(f))
+            os.remove("temp.json")
+
+        tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
+        midnight = datetime.datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day)
+        dt = midnight - datetime.datetime.now()
+        await discord.utils.sleep_until(dt)
+
+    async def on_command(self, ctx):
+        self.command_usage.update({ctx.command.qualified_name: 1})
+
+    async def close(self):
+        with open("temp.json", "w") as f:
+            json.dump(dict(self.command_usage), f)
+        await super().close()
+
     async def load_prefixes(self):
         for entry in await self.pool.fetch("SELECT * FROM prefixes"):
             self.prefixes[entry["guild_id"]] = entry["guild_prefixes"]
@@ -153,6 +182,7 @@ class PB_Bot(commands.Bot):
                                     self.command_list.append(str(subcommand3))
                                     self.command_list.extend([f"{subcommand2} {subcommand3_alias}" for subcommand3_alias in subcommand3.aliases])
 
+        self.clear_command_usage.start()
         self.presence_update.start()
         super().run(*args, **kwargs)
 

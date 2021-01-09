@@ -175,6 +175,18 @@ class BotInfo(commands.Cog, name="Bot Info"):
             colour=bot.embed_colour)
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=["cl"])
+    async def commandleaderboard(self, ctx):
+        """
+        Shows the top 5 most used commands for today.
+        """
+        top5 = zip(bot.command_usage.most_common(5), ["🥇", "🥈", "🥉", "🏅", "5\N{variation selector-16}\N{combining enclosing keycap}"])
+        embed = discord.Embed(title="Command Leaderboard", colour=bot.embed_colour)
+        embed.add_field(name="Most used commands", value="\n".join(
+            f"{ranking[1]} {ranking[0][0]} ({ranking[0][1]} use{'s' if ranking[0][1] > 1 else ''})" for ranking in top5)
+                                                         or "No commands have been used today.")
+        await ctx.send(embed=embed)
+
 
 def setup(_):
     bot.add_cog(BotInfo())
