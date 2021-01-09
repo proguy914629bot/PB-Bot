@@ -35,7 +35,9 @@ class BotInfo(commands.Cog, name="Bot Info"):
         await ctx.trigger_typing()
         api_response_time = time.perf_counter() - start
         try:
-            await ctx.send(embed=discord.Embed(title="Pong!", description=f"**Websocket Latency:** `{bot.latency * 1000:.{accuracy}f}ms`\n**API response time:** `{api_response_time * 1000:.{accuracy}f}ms`", colour=bot.embed_colour))
+            await ctx.send(embed=discord.Embed(title="Pong!", description= \
+                f"**Websocket Latency:** `{bot.latency * 1000:.{accuracy}f}ms`\n"
+                f"**API response time:** `{api_response_time * 1000:.{accuracy}f}ms`", colour=bot.embed_colour))
         except (discord.errors.HTTPException, ValueError):
             await ctx.send(f"Too many decimal places ({accuracy}).")
 
