@@ -95,6 +95,7 @@ class CustomHelpCommand(commands.HelpCommand):
         embed = discord.Embed(title=f"Help on Command `{command.name}`", description=command.help or 'No info available.', colour=bot.embed_colour)
         embed.add_field(name="Signature:", value=f"{command.name} {command.signature}", inline=False)
         embed.add_field(name="Category:", value=f"{command.cog_name}", inline=False)
+        embed.add_field(name="Are you able to use this command:", value=bot.emoji_dict['green_tick'] if command.can_run(self.context) else bot.emoji_dict['red_tick'])
         embed.add_field(name="Aliases:", value=aliases, inline=False)
         embed.set_thumbnail(url=bot.user.avatar_url)
         prefix = f"{self.clean_prefix.strip()} " if self.clean_prefix.endswith(" ") else self.clean_prefix
@@ -125,6 +126,7 @@ class CustomHelpCommand(commands.HelpCommand):
         embed = discord.Embed(title=f"Help on Command Group `{group.name}`", description=group.help or 'No info available.', colour=bot.embed_colour)
         embed.add_field(name="Signature:", value=f"{group.name} {group.signature}", inline=False)
         embed.add_field(name="Category:", value=f"{group.cog_name}", inline=False)
+        embed.add_field(name="Are you able to use this command:", value=bot.emoji_dict['green_tick'] if group.can_run(self.context) else bot.emoji_dict['red_tick'])
         embed.add_field(name="Aliases:", value=aliases, inline=False)
         embed.add_field(name="Commands in this Group:", value=_commands)
         embed.set_thumbnail(url=bot.user.avatar_url)
