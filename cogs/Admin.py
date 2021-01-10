@@ -109,47 +109,6 @@ class Admin(commands.Cog):
         finished_cogs = '\n'.join(expression for expression in finished_cog_list)
         await ctx.send(f"**Finished Reloading Cogs**\n\n{finished_cogs}")
 
-    class TODOSOURCE(menus.ListPageSource):
-        def __init__(self, data):
-            super().__init__(data, per_page=5)
-
-        async def format_page(self, menu, page):
-            embed = discord.Embed(title="Todo List", description="\n".join(f"**{number}.** {item}" for number, item in page) or "Nothing here!", colour=bot.embed_colour)
-            return embed
-
-    @admin.group(invoke_without_command=True)
-    async def todo(self, ctx):
-        """
-        View the tasks in the todo list.
-        """
-        entries = [entry['task'] for entry in await bot.pool.fetch("SELECT * FROM todolist")]
-        li = [(number, item) for number, item in enumerate(entries, start=1)]
-        await menus.MenuPages(source=self.TODOSOURCE(li), delete_message_after=True).start(ctx)
-
-    @todo.command()
-    async def add(self, ctx, *, task):
-        """
-        Add a task to the todo list.
-
-        `task` - The task to add.
-        """
-        if await bot.pool.fetchval("SELECT * FROM todolist WHERE task = $1", task):
-            return await ctx.send(f"`{task}` is already in the todo list.")
-        await bot.pool.execute("INSERT INTO todolist VALUES ($1)", task)
-        await ctx.send(f"Added `{task}` to the todo list.")
-
-    @todo.command()
-    async def remove(self, ctx, *, task):
-        """
-        Remove a task from the todo list.
-
-        `task` - The task to remove.
-        """
-        if not await bot.pool.fetchval("SELECT * FROM todolist WHERE task = $1", task):
-            return await ctx.send(f"`{task}` is not in the todo list.")
-        await bot.pool.execute("DELETE FROM todolist WHERE task = $1", task)
-        await ctx.send(f"Removed `{task}` from the todo list.")
-
     @admin.command()
     async def cleanup(self, ctx: commands.Context, amount: int = 10, limit: int = 100):
         """

@@ -11,6 +11,7 @@ import humanize
 import datetime
 import pathlib
 from pyfiglet import Figlet
+import typing
 
 from dependencies import bot
 from config import config
@@ -154,6 +155,67 @@ class Meta(commands.Cog):
         `text` - The text to owoify.
         """
         await ctx.send(discord.utils.escape_mentions(bot.utils.owoify(text)))
+
+    class TODOSOURCE(menus.ListPageSource):
+        def __init__(self, data):
+            super().__init__(data, per_page=5)
+
+        async def format_page(self, menu, page):
+            embed = discord.Embed(title=f"Todo List for `{menu.ctx.author}`",
+                                  description="\n".join(f"**{number}.** {item}" for number, item in page) or "Nothing here!", colour=bot.embed_colour)
+            return embed
+
+    @commands.group(invoke_without_command=True)
+    async def todo(self, ctx):
+        """
+        View the tasks in your todo list.
+        """
+        entries = await bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id)
+        li = [(number, item) for number, item in enumerate(entries, start=1)]
+        await menus.MenuPages(source=self.TODOSOURCE(li), delete_message_after=True).start(ctx)
+
+    @todo.command()
+    async def add(self, ctx, *, task):
+        """
+        Add a task to your todo list.
+
+        `task` - The task to add.
+        """
+
+        if len(task) > 100:
+            return await ctx.send(f"{bot.emoji_dict['red_tick']} Task is too long.")
+        tasks = await bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id)
+        if tasks is None:
+            await bot.pool.execute("INSERT INTO todos VALUES ($1)", ctx.author.id)
+            tasks = []
+        if len(tasks) >= 100:
+            return await ctx.send(f"{bot.emoji_dict['red_tick']} Sorry, you can only have 100 tasks in your todo list at a time.")
+        if task in tasks:
+            return await ctx.send(f"{bot.emoji_dict['red_tick']} That task is already in your todo list.")
+        await bot.pool.execute("UPDATE todos SET tasks = array_append(tasks, $1) WHERE user_id = $2", task, ctx.author.id)
+        await ctx.send(f"{bot.emoji_dict['green_tick']} Added `{task}` to your todo list.")
+
+    @todo.command()
+    async def remove(self, ctx, *, task: typing.Union[int, str]):
+        """
+        Remove a task from your todo list.
+
+        `task` - The task to remove. Can be the task number or the task name.
+        """
+        tasks = await bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id)
+        if not tasks:
+            return await ctx.send(f"{bot.emoji_dict['red_tick']} Your todo list is empty.")
+        if isinstance(task, int):
+            try:
+                tasks.pop(task - 1)
+            except IndexError:
+                return await ctx.send(f"{bot.emoji_dict['red_tick']} Couldn't find a task with that number.")
+            await bot.pool.execute("UPDATE todos SET tasks = $1 WHERE user_id = $2", tasks, ctx.author.id)
+            return await ctx.send(f"{bot.emoji_dict['green_tick']} Removed task number `{task}` from your todo list.")
+        if task not in tasks:
+            return await ctx.send(f"{bot.emoji_dict['red_tick']} Couldn't find a task with that name.")
+        await bot.pool.execute("UPDATE todos SET tasks = array_remove(tasks, $1) WHERE user_id = $2", task, ctx.author.id)
+        await ctx.send(f"{bot.emoji_dict['green_tick']} Removed `{task}` from your todo list.")
 
 
 def setup(_):
