@@ -171,7 +171,10 @@ class Meta(commands.Cog):
         View the tasks in your todo list.
         """
         entries = await bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id)
-        li = [(number, item) for number, item in enumerate(entries, start=1)]
+        if entries is None:
+            li = []
+        else:
+            li = [(number, item) for number, item in enumerate(entries, start=1)]
         await menus.MenuPages(source=self.TODOSOURCE(li), delete_message_after=True).start(ctx)
 
     @todo.command()
@@ -207,14 +210,16 @@ class Meta(commands.Cog):
             return await ctx.send(f"{bot.emoji_dict['red_tick']} Your todo list is empty.")
         if isinstance(task, int):
             try:
-                tasks.pop(task - 1)
+                task = tasks.pop(task - 1)
             except IndexError:
                 return await ctx.send(f"{bot.emoji_dict['red_tick']} Couldn't find a task with that number.")
             await bot.pool.execute("UPDATE todos SET tasks = $1 WHERE user_id = $2", tasks, ctx.author.id)
-            return await ctx.send(f"{bot.emoji_dict['green_tick']} Removed task number `{task}` from your todo list.")
-        if task not in tasks:
-            return await ctx.send(f"{bot.emoji_dict['red_tick']} Couldn't find a task with that name.")
-        await bot.pool.execute("UPDATE todos SET tasks = array_remove(tasks, $1) WHERE user_id = $2", task, ctx.author.id)
+        else:
+            if task not in tasks:
+                return await ctx.send(f"{bot.emoji_dict['red_tick']} Couldn't find a task with that name.")
+            await bot.pool.execute("UPDATE todos SET tasks = array_remove(tasks, $1) WHERE user_id = $2", task, ctx.author.id)
+        if not await bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id):
+            await bot.pool.execute("DELETE FROM todos WHERE user_id = $1", ctx.author.id)
         await ctx.send(f"{bot.emoji_dict['green_tick']} Removed `{task}` from your todo list.")
 
 
