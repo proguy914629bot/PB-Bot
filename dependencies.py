@@ -74,6 +74,10 @@ class PB_Bot(commands.Bot):
             "offline": "<:offline:787461784318902303>",
             "idle": "<:idle:787461645038256149>",
             "dnd": "<:dnd:787461694455808070>",
+            "tickon": "<:tickon:798279151236284426>",
+            "tickoff": "<:tickoff:798279187789905951>",
+            "xon": "<:xon:798278986018717696>",
+            "xoff": "<:xoff:798279033078284288>",
         }
 
     async def get_context(self, message: discord.Message, *, cls=None):

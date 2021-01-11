@@ -160,7 +160,8 @@ class Info(commands.Cog):
         member = member or ctx.author
         perms = []
         for perm, value in member.permissions_in(ctx.channel):
-            value = ctx.bot.emoji_dict["green_tick"] if value else ctx.bot.emoji_dict["red_tick"]
+            value = f"{ctx.bot.emoji_dict['xoff']}{ctx.bot.emoji_dict['tickon']}" \
+                if value else f"{ctx.bot.emoji_dict['xon']}{ctx.bot.emoji_dict['tickoff']}"
             perms.append(f"{value} {perm.replace('_', ' ').replace('guild', 'server')}")
         embed = discord.Embed(title=f"Permissions for {member} in {ctx.channel}",
                               description="\n".join(perms),
