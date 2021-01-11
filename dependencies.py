@@ -29,10 +29,7 @@ async def get_prefix(bot, message: discord.Message):
     if not message.guild:
         prefixes = ['pb']
     else:
-        prefixes = bot.prefixes.get(message.guild.id, None)
-        if prefixes is None:
-            prefixes = bot.prefixes[message.guild.id] = ['pb']
-            await bot.pool.execute("INSERT INTO prefixes VALUES ($1)", message.guild.id)
+        prefixes = bot.prefixes.get(message.guild.id, ['pb'])
     for prefix in prefixes:
         match = re.match(f"^({prefix}\s*).*", message.content, flags=re.IGNORECASE)
         if match:
@@ -94,10 +91,6 @@ class PB_Bot(commands.Bot):
             return await ctx.invoke(self.get_command("prefix"))
         await self.process_commands(message)
 
-    async def on_guild_join(self, guild: discord.Guild):
-        await self.pool.execute("INSERT INTO prefixes VALUES ($1)", guild.id)
-        self.prefixes[guild.id] = ['pb']
-
     async def on_guild_leave(self, guild: discord.Guild):
         await self.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", guild.id)
         self.prefixes.pop(guild.id, None)
@@ -118,13 +111,16 @@ class PB_Bot(commands.Bot):
 
     @tasks.loop(minutes=30)
     async def presence_update(self):
-        await self.wait_until_ready()
         await self.change_presence(
             status=discord.Status.idle,
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
                 name=f"{len(self.guilds)} servers and {len(self.users)} users")
         )
+
+    @presence_update.before_loop
+    async def before_presence(self):
+        await self.wait_until_ready()
 
     @tasks.loop(hours=24)
     async def clear_command_usage(self):

@@ -100,7 +100,11 @@ class BotInfo(commands.Cog, name="Bot Info"):
             return await ctx.send(f"`{prefix}` is already a prefix for this server.")
         if len(ctx.bot.prefixes[ctx.guild.id]) > 50:
             return await ctx.send("This server already has 50 prefixes.")
+        if ctx.guild.id not in ctx.bot.prefixes:
+            ctx.bot.prefixes[ctx.guild.id] = ['pb']
+            await ctx.bot.pool.execute("INSERT INTO prefixes VALUES($1,$2)", ctx.guild.id, ['pb'])
         ctx.bot.prefixes[ctx.guild.id].append(prefix)
+
         await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_append(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
         await ctx.send(f"Added `{prefix}` to the list of server prefixes.")
 

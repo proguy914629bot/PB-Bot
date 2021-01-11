@@ -3,7 +3,7 @@ from discord.ext import commands, menus
 import datetime
 import re
 import subprocess
-
+import typing
 
 class Admin(commands.Cog):
     """
@@ -70,7 +70,7 @@ class Admin(commands.Cog):
         `args` - Any amount of cogs to unload.
         """
         if any(cog.lower() == "all" for cog in cogs):
-            cogs_to_unload = list(ctx.bot.extensions.keys())
+            cogs_to_unload = list(ctx.bot.extensions)
         else:
             cogs_to_unload = [f"cogs.{cog}" if cog.lower() != "jishaku" else "jishaku" for cog in cogs]
 
@@ -97,7 +97,7 @@ class Admin(commands.Cog):
         `args` - Any amount of cogs to reload.
         """
         if any(cog.lower() == "all" for cog in cogs):
-            cogs_to_reload = list(ctx.bot.extensions.keys())
+            cogs_to_reload = list(ctx.bot.extensions)
         else:
             cogs_to_reload = [f"cogs.{cog}" if cog.lower() != "jishaku" else "jishaku" for cog in cogs]
         finished_cogs = []
@@ -128,7 +128,7 @@ class Admin(commands.Cog):
         await ctx.send(f"Successfully purged `{counter}` message(s).")
 
     @admin.command()
-    async def emojisnipe(self, ctx, name: str, emoji: discord.Emoji = None):
+    async def emojisnipe(self, ctx, name: str, emoji: typing.Union[discord.Emoji,discord.PartialEmoji] = None):
         """
         Snipes emojis for personal use.
 

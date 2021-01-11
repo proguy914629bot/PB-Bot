@@ -25,8 +25,8 @@ class DiscordStatusSource(menus.ListPageSource):
             operational = [component for component in all_components if component["status"] == "operational"]
             embed = discord.Embed(
                 title="Discord Status\nCurrent Status for Discord",
-                description=f"**{self.summary['status']['description']}**\n" 
-                f"**Impact**: `{self.summary['status']['indicator'].title()}`\n" 
+                description=f"**{self.summary['status']['description']}**\n"
+                f"**Impact**: `{self.summary['status']['indicator'].title()}`\n"
                 f"**Components Operational**: `{len(operational)}/{len(all_components)}`")
 
         elif menu.current_page == 1:  # most recent incident
@@ -86,8 +86,8 @@ class Info(commands.Cog):
         """
         Displays information about the current server.
         """
-        animated_emojis = [emoji for emoji in ctx.guild.emojis if emoji.animated]
-        not_animated_emojis = [emoji for emoji in ctx.guild.emojis if not emoji.animated]
+        animated_emojis = filter(lambda emoji: emoji.animated, emoji)
+        not_animated_emojis = filter(lambda emoji: not emoji.animated, emoji)
 
         member_statuses = Counter([member.status for member in ctx.guild.members])
 
