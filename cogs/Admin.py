@@ -48,7 +48,7 @@ class Admin(commands.Cog):
         `args` - Any amount of cogs to load.
         """
         if any(cog.lower() == "all" for cog in cogs):
-            cogs_to_load = list(ctx.bot.extensions)
+            cogs_to_load = ctx.bot.coglist
         else:
             cogs_to_load = [f"cogs.{cog}" if cog.lower() != "jishaku" else "jishaku" for cog in cogs]
 
