@@ -48,7 +48,7 @@ class Admin(commands.Cog):
         `args` - Any amount of cogs to load.
         """
         if any(cog.lower() == "all" for cog in cogs):
-            cogs_to_load = ctx.bot.coglist
+            cogs_to_load = list(ctx.bot.extensions)
         else:
             cogs_to_load = [f"cogs.{cog}" if cog.lower() != "jishaku" else "jishaku" for cog in cogs]
 
@@ -70,7 +70,7 @@ class Admin(commands.Cog):
         `args` - Any amount of cogs to unload.
         """
         if any(cog.lower() == "all" for cog in cogs):
-            cogs_to_unload = list(ctx.bot.extensions.keys())
+            cogs_to_unload = list(ctx.bot.extensions)
         else:
             cogs_to_unload = [f"cogs.{cog}" if cog.lower() != "jishaku" else "jishaku" for cog in cogs]
 
@@ -97,7 +97,7 @@ class Admin(commands.Cog):
         `args` - Any amount of cogs to reload.
         """
         if any(cog.lower() == "all" for cog in cogs):
-            cogs_to_reload = list(ctx.bot.extensions.keys())
+            cogs_to_reload = list(ctx.bot.extensions)
         else:
             cogs_to_reload = [f"cogs.{cog}" if cog.lower() != "jishaku" else "jishaku" for cog in cogs]
         finished_cogs = []
