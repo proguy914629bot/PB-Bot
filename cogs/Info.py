@@ -159,7 +159,7 @@ class Info(commands.Cog):
         """
         member = member or ctx.author
         perms = list(member.permissions_in(ctx.channel))
-        split_perms = [perms[x:x+10] for x in range(0, len(perms), 10)]
+        split_perms = [perms[x:x+12] for x in range(0, len(perms), 12)]
         embed = discord.Embed(title=f"Permissions for `{member}` in `{ctx.channel}`",
                               colour=ctx.bot.embed_colour)
         for li in split_perms:
