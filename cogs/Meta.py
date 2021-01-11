@@ -85,7 +85,6 @@ class Meta(commands.Cog):
         """
         async with ctx.typing():
             if isinstance(query, str):
-                # query by title
                 async with ctx.bot.session.get(
                         "https://www.explainxkcd.com/wiki/api.php",
                         params={"action": "query", "list": "search", "format": "json", "srsearch": query,
@@ -95,7 +94,9 @@ class Meta(commands.Cog):
                         num = result[0]["title"].split(":")[0]
                     else:
                         return await ctx.send("Couldn't find a comic with that query.")
-            elif isinstance(query, type(None)):
+            elif isinstance(query, int):
+                num = query
+            else:
                 async with ctx.bot.session.get("https://xkcd.com/info.0.json") as resp:
                     max_num = (await resp.json())["num"]
                 num = random.randint(1, max_num)
@@ -106,6 +107,7 @@ class Meta(commands.Cog):
                 elif resp.status >= 500:
                     return await ctx.send("Server error.")
                 data = await resp.json()
+
             embed = discord.Embed(
                 title=f"{data['safe_title']} (Comic Number `{data['num']}`)",
                 description=data["alt"],
