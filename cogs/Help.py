@@ -155,4 +155,4 @@ def setup(bot):
 
 
 def teardown(bot):
-    bot.help_command = None
+    bot.help_command = commands.DefaultHelpCommand()
