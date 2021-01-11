@@ -63,20 +63,18 @@ class ErrorHandling(commands.Cog):
                     pass
 
         elif isinstance(error, commands.MissingRequiredArgument):
-            prefix = f"{ctx.clean_prefix.strip()} " if ctx.clean_prefix.endswith(" ") else ctx.clean_prefix
             embed = discord.Embed(
                 title=f"`{str(error.param).split(':')[0]}` is a required argument that is missing.",
-                description=f"Confused? Run the command `{prefix}help {ctx.command}`.", colour=ctx.bot.embed_colour)
+                description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.", colour=ctx.bot.embed_colour)
             await ctx.send(embed=embed)
 
         elif isinstance(error, (commands.MessageNotFound, commands.ChannelNotFound, commands.MemberNotFound, commands.EmojiNotFound, commands.RoleNotFound, commands.UserNotFound)):
             await ctx.send(error)
 
         elif isinstance(error, commands.BadArgument):
-            prefix = f"{ctx.clean_prefix.strip()} " if ctx.clean_prefix.endswith(" ") else ctx.clean_prefix
             embed = discord.Embed(
                 title=str(error).replace("int", "integer"),
-                description=f"Confused? Run the command `{prefix}help {ctx.command}`.", colour=ctx.bot.embed_colour)
+                description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.", colour=ctx.bot.embed_colour)
             await ctx.send(embed=embed)
 
         elif isinstance(error, commands.TooManyArguments):

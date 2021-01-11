@@ -206,7 +206,10 @@ class CustomContext(commands.Context):
     """
     @property
     def clean_prefix(self):
-        return re.sub(f"<@!?{self.bot.user.id}>", "@PB Bot", self.prefix)
+        prefix = re.sub(f"<@!?{self.bot.user.id}>", "@PB Bot", self.prefix)
+        if prefix.endswith("  "):
+            prefix = f"{prefix.strip()} "
+        return prefix
 
     async def send(self, *args, **kwargs):
         try:

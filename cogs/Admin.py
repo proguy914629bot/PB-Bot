@@ -5,6 +5,7 @@ import re
 import subprocess
 import typing
 
+
 class Admin(commands.Cog):
     """
     Commands that only my owner can use.
@@ -128,7 +129,7 @@ class Admin(commands.Cog):
         await ctx.send(f"Successfully purged `{counter}` message(s).")
 
     @admin.command()
-    async def emojisnipe(self, ctx, name: str, emoji: typing.Union[discord.Emoji,discord.PartialEmoji] = None):
+    async def emojisnipe(self, ctx, name: str, emoji: typing.Union[discord.Emoji, discord.PartialEmoji] = None):
         """
         Snipes emojis for personal use.
 

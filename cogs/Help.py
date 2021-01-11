@@ -15,9 +15,8 @@ class HelpSource(menus.ListPageSource):
                               description=f"Page {menu.current_page + 1}/{self.get_max_pages()}",
                               color=menu.ctx.bot.embed_colour)
         embed.set_thumbnail(url=menu.ctx.bot.user.avatar_url)
-        prefix = f"{menu.ctx.clean_prefix.strip()} " if menu.ctx.clean_prefix.endswith(" ") else menu.ctx.clean_prefix
-        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\n"
-                              f"You can also type {prefix}help (category) for more info on a category.")
+        embed.set_footer(text=f"Type {menu.ctx.clean_prefix}help (command) for more info on a command.\n"
+                              f"You can also type {menu.ctx.clean_prefix}help (category) for more info on a category.")
         if menu.current_page == 0:
             embed.add_field(name="About", value=menu.ctx.bot.description)
         else:
@@ -104,9 +103,9 @@ class CustomHelpCommand(commands.HelpCommand):
         embed.add_field(name="Are you able to use this command:", value=can_run)
         embed.add_field(name="Aliases:", value="\n".join(command.aliases) or "None", inline=False)
         embed.set_thumbnail(url=self.context.bot.user.avatar_url)
-        prefix = f"{self.clean_prefix.strip()} " if self.clean_prefix.endswith(" ") else self.clean_prefix
-        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\n"
-                              f"You can also type {prefix}help (category) for more info on a category.")
+        embed.set_footer(
+            text=f"Type {self.context.clean_prefix}help (command) for more info on a command.\n"
+            f"You can also type {self.context.clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def send_cog_help(self, cog):
@@ -115,9 +114,9 @@ class CustomHelpCommand(commands.HelpCommand):
                               colour=self.context.bot.embed_colour)
         embed.add_field(name="Commands in this Category:", value="\n".join(str(command) for command in cog.get_commands()) or "None")
         embed.set_thumbnail(url=self.context.bot.user.avatar_url)
-        prefix = f"{self.clean_prefix.strip()} " if self.clean_prefix.endswith(" ") else self.clean_prefix
-        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\n"
-                              f"You can also type {prefix}help (category) for more info on a category.")
+        embed.set_footer(
+            text=f"Type {self.context.clean_prefix}help (command) for more info on a command.\n"
+            f"You can also type {self.context.clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def send_group_help(self, group):
@@ -138,9 +137,9 @@ class CustomHelpCommand(commands.HelpCommand):
         embed.add_field(name="Aliases:", value="\n".join(group.aliases) or "None", inline=False)
         embed.add_field(name="Commands in this Group:", value="\n".join(str(command) for command in group.walk_commands()) or "None")
         embed.set_thumbnail(url=self.context.bot.user.avatar_url)
-        prefix = f"{self.clean_prefix.strip()} " if self.clean_prefix.endswith(" ") else self.clean_prefix
-        embed.set_footer(text=f"Type {prefix}help (command) for more info on a command.\n"
-                              f"You can also type {prefix}help (category) for more info on a category.")
+        embed.set_footer(
+            text=f"Type {self.context.clean_prefix}help (command) for more info on a command.\n"
+            f"You can also type {self.context.clean_prefix}help (category) for more info on a category.")
         return await self.context.send(embed=embed)
 
     async def command_not_found(self, string):
