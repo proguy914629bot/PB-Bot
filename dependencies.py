@@ -111,13 +111,16 @@ class PB_Bot(commands.Bot):
 
     @tasks.loop(minutes=30)
     async def presence_update(self):
-        await self.wait_until_ready()
         await self.change_presence(
             status=discord.Status.idle,
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
                 name=f"{len(self.guilds)} servers and {len(self.users)} users")
         )
+
+    @presence_update.before_loop
+    async def before_presence(self):
+        await self.wait_until_ready()
 
     @tasks.loop(hours=24)
     async def clear_command_usage(self):
