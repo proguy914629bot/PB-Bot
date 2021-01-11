@@ -7,8 +7,6 @@ import time
 import sys
 import inspect
 
-from dependencies import bot
-
 
 class BotInfo(commands.Cog, name="Bot Info"):
     """
@@ -21,7 +19,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Displays how long the bot has been online for since last reboot.
         """
-        uptime = datetime.datetime.now() - bot.start_time
+        uptime = datetime.datetime.now() - ctx.bot.start_time
         await ctx.send(f"Bot has been online for **`{humanize.precisedelta(uptime)}`**.")
 
     @commands.command()
@@ -35,9 +33,11 @@ class BotInfo(commands.Cog, name="Bot Info"):
         await ctx.trigger_typing()
         api_response_time = time.perf_counter() - start
         try:
-            await ctx.send(embed=discord.Embed(title="Pong!", description= \
-                f"**Websocket Latency:** `{bot.latency * 1000:.{accuracy}f}ms`\n"
-                f"**API response time:** `{api_response_time * 1000:.{accuracy}f}ms`", colour=bot.embed_colour))
+            await ctx.send(embed=discord.Embed(
+                title="Pong!",
+                description=
+                f"**Websocket Latency:** `{ctx.bot.latency * 1000:.{accuracy}f}ms`\n"
+                f"**API response time:** `{api_response_time * 1000:.{accuracy}f}ms`", colour=ctx.bot.embed_colour))
         except (discord.errors.HTTPException, ValueError):
             await ctx.send(f"Too many decimal places ({accuracy}).")
 
@@ -49,21 +49,22 @@ class BotInfo(commands.Cog, name="Bot Info"):
         start = time.perf_counter()
         await ctx.trigger_typing()
         api_response_time = time.perf_counter() - start
-        embed = discord.Embed(title="Bot Info", colour=bot.embed_colour)
-        embed.set_thumbnail(url=bot.user.avatar_url)
-        embed.add_field(name="General",
-                    value= \
-                    f"• Running discord.py version **{discord.__version__}** on python **{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}**\n"
-                    f"• This bot is not sharded and can see **{len(bot.guilds)}** servers and **{len(bot.users)}** users\n"
-                    f"• **{len(bot.cogs)}** cogs loaded and **{len(list(bot.walk_commands()))}** commands loaded\n"
-                    f"• **Websocket latency:** `{bot.latency * 1000:.2f}ms`\n"
-                    f"• **API response time:** `{api_response_time * 1000:.2f}ms`\n"
-                    f"• **Uptime since last boot:** {humanize.precisedelta(datetime.datetime.now() - bot.start_time)}"
-                    )
+        embed = discord.Embed(title="Bot Info", colour=ctx.bot.embed_colour)
+        embed.set_thumbnail(url=ctx.bot.user.avatar_url)
+        v = sys.version_info
+        embed.add_field(
+            name="General",
+            value=
+            f"• Running discord.py version **{discord.__version__}** on python **{v.major}.{v.minor}.{v.micro}**\n"
+            f"• This bot is not sharded and can see **{len(ctx.bot.guilds)}** servers and **{len(ctx.bot.users)}** users\n"
+            f"• **{len(ctx.bot.cogs)}** cogs loaded and **{len(list(ctx.bot.walk_commands()))}** commands loaded\n"
+            f"• **Websocket latency:** `{ctx.bot.latency * 1000:.2f}ms`\n"
+            f"• **API response time:** `{api_response_time * 1000:.2f}ms`\n"
+            f"• **Uptime since last boot:** {humanize.precisedelta(datetime.datetime.now() - ctx.bot.start_time)}")
         p = psutil.Process()
         m = p.memory_full_info()
         embed.add_field(name="System",
-                        value= \
+                        value=
                         f"• `{p.cpu_percent()}%` cpu\n"
                         f"• `{humanize.naturalsize(m.rss)}` physical memory\n"
                         f"• `{humanize.naturalsize(m.vms)}` virtual memory\n"
@@ -79,15 +80,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if not ctx.guild:
             return await ctx.send("My prefix is always `pb` in direct messages. You can also mention me.")
-        prefixes = bot.prefixes[ctx.guild.id]
+        prefixes = ctx.bot.prefixes.get(ctx.guild.id, ["pb"])
         if len(prefixes) == 1:
             return await ctx.send(f"My prefix for this server is `{prefixes[0]}`.")
-        await ctx.send(f"My prefixes for this server are `{bot.utils.humanize_list(prefixes)}`.")
+        await ctx.send(f"My prefixes for this server are `{ctx.bot.utils.humanize_list(prefixes)}`.")
 
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     @prefix.command(name="add")
-    async def add_(self, ctx, *, prefix):
+    async def add_(self, ctx, *, prefix: str):
         """
         Add a prefix to the prefix list for the current server. The `manage server` permission is required to use this command.
 
@@ -95,18 +96,18 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")
-        if prefix in bot.prefixes[ctx.guild.id]:
+        if prefix in ctx.bot.prefixes[ctx.guild.id]:
             return await ctx.send(f"`{prefix}` is already a prefix for this server.")
-        if len(bot.prefixes[ctx.guild.id]) > 50:
+        if len(ctx.bot.prefixes[ctx.guild.id]) > 50:
             return await ctx.send("This server already has 50 prefixes.")
-        bot.prefixes[ctx.guild.id].append(prefix)
-        await bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_append(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
+        ctx.bot.prefixes[ctx.guild.id].append(prefix)
+        await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_append(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
         await ctx.send(f"Added `{prefix}` to the list of server prefixes.")
 
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
     @prefix.command()
-    async def remove(self, ctx, *, prefix):
+    async def remove(self, ctx, *, prefix: str):
         """
         Remove a prefix from the prefix list for the current server. The `manage server` permission is required to use this command.
 
@@ -114,12 +115,12 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")
-        if prefix not in bot.prefixes[ctx.guild.id]:
+        if prefix not in ctx.bot.prefixes[ctx.guild.id]:
             return await ctx.send(f"Couldn't find `{prefix}` in the list of prefixes for this server.")
-        if len(bot.prefixes[ctx.guild.id]) == 1:
+        if len(ctx.bot.prefixes[ctx.guild.id]) == 1:
             return await ctx.send("Sorry, you can't remove this server's only prefix.")
-        bot.prefixes[ctx.guild.id].remove(prefix)
-        await bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_remove(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
+        ctx.bot.prefixes[ctx.guild.id].remove(prefix)
+        await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_remove(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
         await ctx.send(f"Removed `{prefix}` from the list of server prefixes.")
 
     @commands.guild_only()
@@ -129,10 +130,10 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Clears the current server's prefix list. The `manage server` permission is required to use this command.
         """
-        confirm = await bot.utils.Confirm("Are you sure that you want to clear the prefix list for the current server?").prompt(ctx)
+        confirm = await ctx.bot.utils.Confirm("Are you sure that you want to clear the prefix list for the current server?").prompt(ctx)
         if confirm:
-            bot.prefixes[ctx.guild.id] = ["pb"]
-            await bot.pool.execute("UPDATE prefixes SET guild_prefixes = '{pb}' WHERE guild_id = $1", ctx.guild.id)
+            ctx.bot.prefixes[ctx.guild.id] = ["pb"]
+            await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = '{pb}' WHERE guild_id = $1", ctx.guild.id)
             await ctx.send("Cleared the list of server prefixes.")
 
     @commands.command()
@@ -140,11 +141,11 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Displays my invite link.
         """
-        embed = discord.Embed(title="Invite me to your server!", url=bot.invite_url, colour=bot.embed_colour)
+        embed = discord.Embed(title="Invite me to your server!", url=ctx.bot.invite_url, colour=ctx.bot.embed_colour)
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def source(self, ctx, *, command=None):
+    async def source(self, ctx, *, command: str = None):
         """
         View my source code for a specific command.
 
@@ -152,10 +153,11 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if not command:
             embed = discord.Embed(title="Here is my source code.",
-                                  description="Don't forget the license! (A star would also be appreciated ^^)", url=bot.github_url, colour=bot.embed_colour)
+                                  description="Don't forget the license! (A star would also be appreciated ^^)",
+                                  url=ctx.bot.github_url, colour=ctx.bot.embed_colour)
             return await ctx.send(embed=embed)
 
-        command = bot.help_command if command.lower() == "help" else bot.get_command(command)
+        command = ctx.bot.help_command if command.lower() == "help" else ctx.bot.get_command(command)
         if not command:
             return await ctx.send("Couldn't find command.")
 
@@ -167,12 +169,12 @@ class BotInfo(commands.Cog, name="Bot Info"):
             filepath = f"{command.callback.__module__.replace('.', '/')}.py"
 
         ending_line_num = starting_line_num + len(lines) - 1
+        command = "help" if isinstance(command, commands.HelpCommand) else command
         embed = discord.Embed(
-            title=f"Here is my source code for the `{command if not isinstance(command, commands.HelpCommand) else 'help'}` command.",
-            # don't want the command name to be "<HelpCommand object at 0x>"
+            title=f"Here is my source code for the `{command}` command.",
             description="Don't forget the license! (A star would also be appreciated ^^)",
             url=f"https://github.com/PB4162/PB-Bot/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}",
-            colour=bot.embed_colour)
+            colour=ctx.bot.embed_colour)
         await ctx.send(embed=embed)
 
     @commands.command(aliases=["cl"])
@@ -180,13 +182,14 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Shows the top 5 most used commands for today.
         """
-        top5 = zip(bot.command_usage.most_common(5), ["🥇", "🥈", "🥉", "🏅", "5\N{variation selector-16}\N{combining enclosing keycap}"])
-        embed = discord.Embed(title="Command Leaderboard", colour=bot.embed_colour)
+        top5 = zip(ctx.bot.command_usage.most_common(5),
+                   ["🥇", "🥈", "🥉", "🏅", "5\N{variation selector-16}\N{combining enclosing keycap}"])
+        embed = discord.Embed(title="Command Leaderboard", colour=ctx.bot.embed_colour)
         embed.add_field(name="Most used commands", value="\n".join(
             f"{ranking[1]} {ranking[0][0]} ({ranking[0][1]} use{'s' if ranking[0][1] > 1 else ''})" for ranking in top5)
                                                          or "No commands have been used today.")
         await ctx.send(embed=embed)
 
 
-def setup(_):
+def setup(bot):
     bot.add_cog(BotInfo())

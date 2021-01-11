@@ -8,16 +8,10 @@ import random
 from collections import deque
 
 
-def split_on_num(string: str, number: int) -> list:
-    """
-    Returns a list of a string split every `number` characters (avoids me importing textwrap in every file).
-    """
-    return textwrap.wrap(string, number)
-
-
 class Confirm(menus.Menu):
     def __init__(self, msg, *, timeout=120.0, delete_message_after=True, clear_reactions_after=False):
-        super().__init__(timeout=timeout, delete_message_after=delete_message_after, clear_reactions_after=clear_reactions_after)
+        super().__init__(
+            timeout=timeout, delete_message_after=delete_message_after, clear_reactions_after=clear_reactions_after)
         self.msg = msg
         self.result = None
 
@@ -41,7 +35,8 @@ class Confirm(menus.Menu):
 
 class EmbedConfirm(menus.Menu):
     def __init__(self, embed, *, timeout=120.0, delete_message_after=True, clear_reactions_after=False):
-        super().__init__(timeout=timeout, delete_message_after=delete_message_after, clear_reactions_after=clear_reactions_after)
+        super().__init__(
+            timeout=timeout, delete_message_after=delete_message_after, clear_reactions_after=clear_reactions_after)
         self.embed = embed
         self.result = None
 
@@ -73,8 +68,10 @@ class ShortTime(commands.Converter):
             "week": "weeks",   "weeks": "weeks",    "wks": "weeks",        "wk": "weeks",        "w": "weeks",
         }
         argument = argument.lower()
-        number = re.search(r"\d+[.,]?\d*?", argument)
-        time_unit = re.search(f"s|sec|second|seconds|m|min|minute|minutes|hour|hours|h|hr|hrs|day|days|dys|d|dy|week|weeks|wks|wk|w", argument)
+        number = re.search(r"\d+[.]?\d*?", argument)
+        time_unit = re.search(
+            f"s|sec|second|seconds|m|min|minute|minutes|hour|hours|h|hr|hrs|day|days|dys|d|dy|week|weeks|wks|wk|w",
+            argument)
         if not number:
             raise commands.BadArgument("Invalid duration provided.")
         if not time_unit:
@@ -84,7 +81,7 @@ class ShortTime(commands.Converter):
         try:
             return datetime.timedelta(**{time_unit: number})
         except OverflowError:
-            return commands.BadArgument("Time is too large.")
+            raise commands.BadArgument("Time is too large.")
 
 
 class StopWatch:
@@ -146,7 +143,7 @@ class _PaginatorSource(commands.Paginator, menus.PageSource):
             chars_remaining = self.max_size
         super().add_line(line[:chars_remaining], empty=empty)
         line = line[:-chars_remaining]
-        lines = split_on_num(line, self.max_size)
+        lines = textwrap.wrap(line, self.max_size)
         for line in lines:
             super().add_line(line, empty=empty)
 
@@ -171,7 +168,7 @@ class PaginatorSource(menus.ListPageSource):
         return f"```{page}```\nPage {menu.current_page + 1}/{self.get_max_pages()}"
 
 
-def owoify(text):
+def owoify(text: str):
     """
     Owofies text.
     """
@@ -185,7 +182,7 @@ def humanize_list(li: list):
     if len(li) == 1:
         return li[0]
     if len(li) == 2:
-        return " and ".join(item for item in li)
+        return " and ".join(li)
     last_item = li.pop(-1)
     return f"{', '.join(str(item) for item in li)} and {last_item}"
 
@@ -256,7 +253,7 @@ class SnakeGame:
                 self.apple_y = y
                 break
 
-    def move_snake(self, x, y, apple=False):
+    def move_snake(self, x: int, y: int, *, apple=False):
         tail_coords = self.snake[-1]
         previous_x = self.snake_x
         previous_y = self.snake_y
@@ -271,7 +268,7 @@ class SnakeGame:
             self.snake.pop()
         self.snake.appendleft((self.snake_x, self.snake_y))
 
-    def update(self, direction):
+    def update(self, direction: str):
         direction = direction.lower()
         x = y = 0
         if direction == "up":

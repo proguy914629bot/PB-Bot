@@ -8,6 +8,7 @@ import re
 import asyncio
 from config import config
 import logging
+from logging.handlers import RotatingFileHandler
 import asyncpg
 import utils
 from collections import Counter
@@ -16,19 +17,22 @@ import json
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='.\logs\discord.log', encoding='utf-8', mode='w')
+handler = RotatingFileHandler(filename=r'.\logs\discord.log', encoding='utf-8', mode='w',
+                              maxBytes=1_024 * 1_024 * 1_024)  # 1gb
 logger.addHandler(handler)
 
 
-async def get_prefix(bot, message):
+async def get_prefix(bot, message: discord.Message):
+    """
+    get_prefix function.
+    """
     if not message.guild:
         prefixes = ['pb']
     else:
-        try:
-            prefixes = bot.prefixes[message.guild.id]
-        except KeyError:
-            await bot.pool.execute("INSERT INTO prefixes VALUES ($1)", message.guild.id)
+        prefixes = bot.prefixes.get(message.guild.id, None)
+        if prefixes is None:
             prefixes = bot.prefixes[message.guild.id] = ['pb']
+            await bot.pool.execute("INSERT INTO prefixes VALUES ($1)", message.guild.id)
     for prefix in prefixes:
         match = re.match(f"^({prefix}\s*).*", message.content, flags=re.IGNORECASE)
         if match:
@@ -38,6 +42,9 @@ async def get_prefix(bot, message):
 
 
 class PB_Bot(commands.Bot):
+    """
+    Subclassed bot.
+    """
     def __init__(self):
         super().__init__(
             command_prefix=get_prefix,
@@ -51,7 +58,6 @@ class PB_Bot(commands.Bot):
         self.wavelink = wavelink.Client(bot=self)
         self.coglist = [f"cogs.{item[:-3]}" for item in os.listdir("cogs") if item != "__pycache__"] + ["jishaku"]
         self.pool = asyncio.get_event_loop().run_until_complete(asyncpg.create_pool(**config["database"]))
-        self.controllers = {}
         self.utils = utils
         self.command_list = []
         self.embed_colour = 0x01ad98
@@ -73,35 +79,35 @@ class PB_Bot(commands.Bot):
             "dnd": "<:dnd:787461694455808070>",
         }
 
-    async def get_context(self, message, *, cls=None):
+    async def get_context(self, message: discord.Message, *, cls=None):
         return await super().get_context(message, cls=cls or CustomContext)
 
-    async def on_message_edit(self, before, after):
-        if after.author.id == bot.owner_id:
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):
+        if after.author.id == self.owner_id:
             await self.process_commands(after)
 
-    async def on_message(self, message):
-        if message.author.id == self.user.id:
+    async def on_message(self, message: discord.Message):
+        if message.author.bot:
             return
         if re.fullmatch(f"^(<@!?{self.user.id}>)\s*", message.content):
             ctx = await self.get_context(message)
             return await ctx.invoke(self.get_command("prefix"))
         await self.process_commands(message)
 
-    async def on_guild_join(self, guild):
+    async def on_guild_join(self, guild: discord.Guild):
         await self.pool.execute("INSERT INTO prefixes VALUES ($1)", guild.id)
         self.prefixes[guild.id] = ['pb']
 
-    async def on_guild_leave(self, guild):
+    async def on_guild_leave(self, guild: discord.Guild):
         await self.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", guild.id)
-        self.prefixes.pop(guild.id)
+        self.prefixes.pop(guild.id, None)
 
     def beta_command(self):
         async def predicate(ctx):
-            if ctx.author.id == self.owner_id:
-                return True
-            await ctx.send(f"The `{ctx.command}` command is currently in beta. Only my owner can use it.")
-            return
+            if ctx.author.id != self.owner_id:
+                await ctx.send(f"The `{ctx.command}` command is currently in beta. Only my owner can use it.")
+                return False
+            return True
         return commands.check(predicate)
 
     def whitelisted_servers(self):
@@ -115,7 +121,10 @@ class PB_Bot(commands.Bot):
         await self.wait_until_ready()
         await self.change_presence(
             status=discord.Status.idle,
-            activity=discord.Activity(type=discord.ActivityType.watching, name=f"{len(self.guilds)} servers and {len(self.users)} users"))
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{len(self.guilds)} servers and {len(self.users)} users")
+        )
 
     @tasks.loop(hours=24)
     async def clear_command_usage(self):
@@ -195,16 +204,13 @@ class PB_Bot(commands.Bot):
             return f"https://hastebin.com/{(await r.json())['key']}"
 
 
-bot = PB_Bot()
-
-
 class CustomContext(commands.Context):
     """
     Custom context class.
     """
     @property
     def clean_prefix(self):
-        return re.sub(f"<@!?{bot.user.id}>", "@PB Bot", self.prefix)
+        return re.sub(f"<@!?{self.bot.user.id}>", "@PB Bot", self.prefix)
 
     async def send(self, *args, **kwargs):
         try:

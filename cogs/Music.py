@@ -3,7 +3,8 @@ from discord.ext import commands, menus
 import wavelink
 import humanize
 import datetime
-from dependencies import bot, CustomContext
+
+from dependencies import CustomContext
 from config import config
 
 
@@ -47,7 +48,7 @@ class Player(wavelink.Player):
 
         self.queue_position += 1
 
-        embed = discord.Embed(title="Now Playing:", description=f"{song}", colour=bot.embed_colour)
+        embed = discord.Embed(title="Now Playing:", description=f"{song}", colour=self.bot.embed_colour)
         embed.set_footer(text=f"Requested by {song.requester}")
         self.now_playing = await self.session_chan.send(embed=embed)
         await self.play(song)
@@ -91,7 +92,7 @@ class PlayerMenu(menus.Menu):
         max_song_length = float(f"{self.ctx.player.current.length / 1000:.2f}")
         current_position = float(f"{self.ctx.player.position / 1000:.2f}")
         bar_number = int((int(current_position) / int(max_song_length)) * 20)
-        bar = f"\||{bar_number * bot.emoji_dict['red_line']}⚫{(19 - bar_number) * bot.emoji_dict['white_line']}||"
+        bar = f"\||{bar_number * self.ctx.bot.emoji_dict['red_line']}⚫{(19 - bar_number) * self.ctx.bot.emoji_dict['white_line']}||"
         try:
             coming_up = self.ctx.player.queue[self.ctx.player.queue_position]
         except IndexError:
@@ -99,12 +100,12 @@ class PlayerMenu(menus.Menu):
 
         self.embed = discord.Embed(
             title=f"Player for `{self.ctx.guild}`",
-            description= \
+            description=
             f"**Status:** `{'Paused' if self.ctx.player.is_paused else 'Playing'}`\n"
             f"**Connected To:** `{self.ctx.guild.get_channel(self.ctx.player.channel_id).name}`\n"
             f"**Volume:** `{self.ctx.player.volume}`\n"
             f"**Equalizer:** `{self.ctx.player.equalizer}`",
-            colour=bot.embed_colour
+            colour=self.ctx.bot.embed_colour
         )
         self.embed.add_field(name="Now Playing:", value=f"{self.ctx.player.current}", inline=False)
         self.embed.add_field(name="Duration:", value=humanize.precisedelta(datetime.timedelta(milliseconds=self.ctx.player.current.length)), inline=False)
@@ -116,16 +117,14 @@ class PlayerMenu(menus.Menu):
     @menus.button("⏮️")
     async def song_previous(self, _):
         await self.ctx.player.do_previous()
-        if self.ctx.player.queue_position < len(self.ctx.player.queue) - 1:
-            return
-        await self.build_edit()
+        if self.ctx.player.queue_position > len(self.ctx.player.queue) - 1:
+            await self.build_edit()
 
     @menus.button("⏭️")
     async def song_skip(self, _):
         await self.ctx.player.stop()
-        if self.ctx.player.queue_position > len(self.ctx.player.queue) - 1:
-            return
-        await self.build_edit()
+        if self.ctx.player.queue_position < len(self.ctx.player.queue) - 1:
+            await self.build_edit()
 
     @menus.button("⏯️")
     async def play_pause(self, _):
@@ -139,15 +138,17 @@ class PlayerMenu(menus.Menu):
 
     @menus.button("ℹ️")
     async def on_menu_info(self, _):
-        embed = discord.Embed(title="How to use the Player", description="""
-        ⏮️ go back to the previous song
-        ⏭️  skip the current song 
-        ⏯️  pause and unpause the player
-        🔈 opens the volume bar and closes the player
-        ℹ️  shows this message
-        🔁 refreshes the player
-        ⏹️  close the player
-        """, colour=bot.embed_colour)
+        embed = discord.Embed(
+            title="How to use the Player",
+            description=
+            "⏮️ go back to the previous song\n"
+            "⏭️  skip the current song\n" 
+            "⏯️  pause and unpause the player\n"
+            "🔈 opens the volume bar and closes the player\n"
+            "ℹ️  shows this message\n"
+            "🔁 refreshes the player\n"
+            "⏹️  close the player",
+            colour=self.ctx.bot.embed_colour)
         if self.embed.title == "How to use the Player":  # hide the menu info screen
             self.build_embed()
         else:
@@ -176,8 +177,8 @@ class VolumeMenu(menus.Menu):
 
     def build_embed(self):
         volume_bar_number = int(self.ctx.player.volume / 100 * 2)
-        volume_bar = [(volume_bar_number - 1) * '🟦'] + [bot.emoji_dict["blue_button"]] + [(20 - volume_bar_number) * '⬜']
-        self.embed = discord.Embed(title="Volume Bar", description="".join(item for item in volume_bar), colour=bot.embed_colour)
+        volume_bar = [(volume_bar_number - 1) * '🟦'] + [self.ctx.bot.emoji_dict["blue_button"]] + [(20 - volume_bar_number) * '⬜']
+        self.embed = discord.Embed(title="Volume Bar", description="".join(volume_bar), colour=self.ctx.bot.embed_colour)
         self.embed.set_footer(text=f"Current Volume: {self.ctx.player.volume}")
 
     async def build_edit(self):
@@ -216,17 +217,19 @@ class VolumeMenu(menus.Menu):
 
     @menus.button("ℹ️")
     async def on_menu_info(self, _):
-        embed = discord.Embed(title="How to use the Volume Bar", description="""
-        ⏮️ decrease the volume by 100
-        ⏪ decrease the volume by 10
-        ⬅️ decrease the volume by 1
-        ➡️ increase the volume by 1
-        ⏩ increase the volume by 10
-        ⏭️ increase the volume by 100
-        ℹ️ shows this message
-        🔁 refreshes the volume bar
-        ⏹️ closes the volume bar
-        """, colour=bot.embed_colour)
+        embed = discord.Embed(
+            title="How to use the Volume Bar",
+            description=
+            "⏮️ decrease the volume by 100\n"
+            "⏪ decrease the volume by 10\n"
+            "⬅️ decrease the volume by 1\n"
+            "➡️ increase the volume by 1\n"
+            "⏩ increase the volume by 10\n"
+            "⏭️ increase the volume by 100\n"
+            "ℹ️ shows this message\n"
+            "🔁 refreshes the volume bar\n"
+            "⏹️ closes the volume bar",
+            colour=self.ctx.bot.embed_colour)
         if self.embed.title == "How to use the Volume Bar":  # hide the menu info screen
             self.build_embed()
         else:
@@ -248,13 +251,13 @@ class QueueSource(menus.ListPageSource):
 
         self.player = player
 
-    async def format_page(self, menu, page):
+    async def format_page(self, menu: menus.MenuPages, page):
         embed = discord.Embed(
             title="Song Queue",
             description="\n".join(
                 f"**{number}.** {item}" if number != self.player.queue_position else f"*current song* ﹁\n**{number}.** {item}\n﹂ *current song*"
                 for number, item in page) or "Nothing in the queue!",
-            colour=bot.embed_colour)
+            colour=menu.ctx.bot.embed_colour)
         if self.get_max_pages() > 0:
             embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
         return embed
@@ -276,7 +279,7 @@ def is_playing():
     async def predicate(ctx):
         if not ctx.player.is_playing:
             await ctx.send("I am not currently playing anything.")
-            return
+            return False
         return True
     return commands.check(predicate)
 
@@ -294,7 +297,7 @@ class Music(commands.Cog):
     """
     Music commands.
     """
-    def __init__(self):
+    def __init__(self, bot):
         @property
         def get_player(ctx):
             player = bot.wavelink.get_player(ctx.guild.id, cls=Player)
@@ -303,12 +306,13 @@ class Music(commands.Cog):
             return player
 
         CustomContext.player = get_player
+        self.bot = bot
         bot.loop.create_task(self.start_nodes())
 
     async def cog_check(self, ctx):
         if not ctx.guild:
             raise commands.NoPrivateMessage
-        if not bot.wavelink.nodes:
+        if not ctx.bot.wavelink.nodes:
             await ctx.send("Music commands aren't ready yet. Try again in a bit.")
             return
         if not ctx.player.is_connected:  # anyone can use commands if the bot isn't connected to a voice channel
@@ -322,14 +326,14 @@ class Music(commands.Cog):
         return True
 
     async def start_nodes(self):
-        await bot.wait_until_ready()
+        await self.bot.wait_until_ready()
 
-        if bot.wavelink.nodes:
-            previous_nodes = bot.wavelink.nodes.copy()
+        if self.bot.wavelink.nodes:
+            previous_nodes = self.bot.wavelink.nodes.copy()
             for node in previous_nodes.values():
                 await node.destroy()
 
-        node = await bot.wavelink.initiate_node(**config["wavelink_node"])
+        node = await self.bot.wavelink.initiate_node(**config["wavelink_node"])
         node.set_hook(self.on_node_event)
 
     async def on_node_event(self, event):
@@ -386,13 +390,13 @@ class Music(commands.Cog):
         await menus.MenuPages(QueueSource(source, ctx.player)).start(ctx)
 
     @songqueue.command()
-    async def add(self, ctx, *, query):
+    async def add(self, ctx, *, query: str):
         """
         Adds a song to the queue.
 
         `query` - The song to add to the queue.
         """
-        query_results = await bot.wavelink.get_tracks(f"ytsearch:{query}")
+        query_results = await ctx.bot.wavelink.get_tracks(f"ytsearch:{query}")
         if not query_results:
             return await ctx.send(f"Could not find any songs with that query.")
         track = Track(query_results[0].id, query_results[0].info, requester=ctx.author)
@@ -405,20 +409,19 @@ class Music(commands.Cog):
             await ctx.player.do_next()
 
     @songqueue.command()
-    async def remove(self, ctx, *, query):
+    async def remove(self, ctx, *, query: str):
         """
         Removes a song from the queue.
 
         `query` - The song to remove from the queue.
         """
-        query_results = await bot.wavelink.get_tracks(f"ytsearch:{query}")
+        query_results = await ctx.bot.wavelink.get_tracks(f"ytsearch:{query}")
         if not query_results:
             return await ctx.send(f"Could not find any songs with that query.")
         track = Track(query_results[0].id, query_results[0].info, requester=ctx.author)
-        track_name = str(track)
-        for track, position in enumerate(ctx.player.queue):
-            if str(track) == track_name:
-                ctx.player.queue.remove(track)
+        for track_, position in enumerate(ctx.player.queue):
+            if str(track_) == str(track):
+                ctx.player.queue.remove(track_)
                 if position < ctx.player.queue_position:
                     ctx.player.queue_position -= 1
         await ctx.send(f"Removed all songs with the name `{track}` from the queue. Queue length: `{len(ctx.player.queue)}`")
@@ -478,7 +481,7 @@ class Music(commands.Cog):
 
     @is_playing()
     @commands.command(aliases=["eq", "setequalizer", "seteq"])
-    async def equalizer(self, ctx, *, equalizer):
+    async def equalizer(self, ctx, *, equalizer: str):
         """
         Change the players equalizer.
 
@@ -543,5 +546,5 @@ class Music(commands.Cog):
         await ctx.send(f"Disconnected from **`{channel}`**.")
 
 
-def setup(_):
-    bot.add_cog(Music())
+def setup(bot):
+    bot.add_cog(Music(bot))

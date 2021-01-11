@@ -1,8 +1,6 @@
 import discord
 from discord.ext import commands
 
-from dependencies import bot
-
 
 class Moderation(commands.Cog):
     """
@@ -44,5 +42,5 @@ class Moderation(commands.Cog):
         await ctx.send("👌")
 
 
-def setup(_):
+def setup(bot):
     bot.add_cog(Moderation())

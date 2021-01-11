@@ -6,8 +6,6 @@ import asyncio
 import time
 from utils import SnakeGame
 
-from dependencies import bot
-
 
 class SnakeMenu(menus.Menu):
     """
@@ -24,16 +22,18 @@ class SnakeMenu(menus.Menu):
 
     async def send_initial_message(self, ctx, channel):
         await self.refresh_embed()
-        self.task = bot.loop.create_task(self.loop())
+        self.task = ctx.bot.loop.create_task(self.loop())
         return await channel.send(embed=self.embed)
 
     async def get_players(self):
         if not self.player_ids:
             return "anyone can control the game"
-        return "\n".join(str(player) for player in [await bot.fetch_user(player_id) for player_id in self.player_ids])
+        return "\n".join(
+            str(player) for player in [await self.ctx.bot.fetch_user(player_id) for player_id in self.player_ids])
 
     async def refresh_embed(self):
-        self.embed = discord.Embed(title=f"Snake Game", description=self.game.show_grid(), colour=bot.embed_colour)
+        self.embed = discord.Embed(title=f"Snake Game", description=self.game.show_grid(),
+                                   colour=self.ctx.bot.embed_colour)
         self.embed.add_field(name="Players", value=await self.get_players())
         self.embed.add_field(name="Score", value=self.game.score)
         self.embed.add_field(name="Current Direction", value=self.direction)
@@ -57,7 +57,7 @@ class SnakeMenu(menus.Menu):
             if payload.user_id not in self.player_ids:
                 return False
         else:
-            if payload.user_id == bot.user.id:
+            if payload.user_id == self.ctx.bot.user.id:
                 return False
         return payload.emoji in self.buttons
 
@@ -97,32 +97,34 @@ class TicTacToe:
         self.player2 = player2
         self.ctx = ctx
         self.msg = None
-        self.turn = random.choice([self.player1, self.player2])
-        self.player_mapping = {self.player1: "🇽", self.player2: "🅾️"} if self.turn == self.player1 else {self.player2: "🇽", self.player1: "🅾️"}
-        self.x_and_o_mapping = {"🇽": self.player1, "🅾️": self.player2} if self.turn == self.player1 else {"🇽": self.player2, "🅾️": self.player1}
         self.board = {'↖️': "⬜", '⬆️': "⬜", '↗️': "⬜",
                       '➡️': "⬜", '↘️': "⬜", '⬇️': "⬜",
                       '↙️': "⬜", '⬅️': "⬜", '⏺️': "⬜"}
+        self.turn = random.choice([self.player1, self.player2])
+        if self.turn == player1:
+            self.player_mapping = {self.player1: "🇽", self.player2: "🅾️"}
+            self.x_and_o_mapping = {"🇽": self.player1, "🅾️": self.player2}
+            return
+        self.player_mapping = {self.player2: "🇽", self.player1: "🅾️"}
+        self.x_and_o_mapping = {"🇽": self.player2, "🅾️": self.player1}
 
     def show_board(self):
         return f"**Tic-Tac-Toe Game between `{self.player1}` and `{self.player2}`**\n\n" \
             f"🇽: `{self.x_and_o_mapping['🇽']}`\n🅾️: `{self.x_and_o_mapping['🅾️']}`\n\n" \
-            f"{self.board['↖️']} {self.board['⬆️']} {self.board['↗️']}\n{self.board['⬅️']} {self.board['⏺️']} " \
-            f"{self.board['➡️']}\n{self.board['↙️']} {self.board['⬇️']} {self.board['↘️']}\n\n"
-
-    def check_space(self, move):
-        return self.board[move.emoji] == '⬜'
+            f"{self.board['↖️']} {self.board['⬆️']} {self.board['↗️']}\n" \
+            f"{self.board['⬅️']} {self.board['⏺️']} {self.board['➡️']}\n" \
+            f"{self.board['↙️']} {self.board['⬇️']} {self.board['↘️']}\n\n"
 
     def switch_turn(self):
         if self.turn == self.player1:
             self.turn = self.player2
-        else:
-            self.turn = self.player1
+            return
+        self.turn = self.player1
 
     async def loop(self):
         while True:
             try:
-                move, user = await bot.wait_for(
+                move, user = await self.ctx.bot.wait_for(
                     "reaction_add",
                     check=lambda reaction, user: reaction.message.guild == self.ctx.guild
                     and reaction.message.channel == self.ctx.message.channel
@@ -133,7 +135,7 @@ class TicTacToe:
                 await self.msg.edit(content=f"{self.show_board()}Game Over.\n**{self.turn}** took too long to move.")
                 await self.ctx.send(f"{self.turn.mention} game over, you took too long to move. {self.msg.jump_url}")
                 return
-            if self.check_space(move):
+            if self.board[move.emoji] == "⬜":
                 self.board[move.emoji] = self.player_mapping[self.turn]
             else:
                 await self.msg.edit(content=f"{self.show_board()}**Current Turn**: `{self.turn}`\nThat place is already filled.")
@@ -179,9 +181,7 @@ class Fun(commands.Cog):
             return await ctx.send("You flipped a coin and it landed on it's `side`!")
         await ctx.send(f"You flipped a coin and got `{result}`!")
 
-    @commands.command(
-        aliases=["cm"]
-    )
+    @commands.command(aliases=["cm"])
     async def cleanmeme(self, ctx, category=None):
         """
         Gets a random post from r/CleanMemes.
@@ -191,10 +191,12 @@ class Fun(commands.Cog):
         if category is None:
             category = "hot"
         category, _ = process.extractOne(category, ["hot", "new", "top", "rising"])
-        async with bot.session.get(f"https://www.reddit.com/r/CleanMemes/new.json?sort={category}") as r:
+        async with ctx.bot.session.get(f"https://www.reddit.com/r/CleanMemes/new.json?sort={category}") as r:
             response = await r.json()
-            embed = discord.Embed(title=response['data']['children']
-            [random.randint(0, len(response['data']['children']) - 1)]['data']['title'], colour=bot.embed_colour)
+            embed = discord.Embed(
+                title=response['data']['children']
+                [random.randint(0, len(response['data']['children']) - 1)]['data']['title'],
+                colour=ctx.bot.embed_colour)
             embed.set_image(url=response['data']['children']
                             [random.randint(0, len(response['data']['children']) - 1)]['data']['url'])
         try:
@@ -207,39 +209,39 @@ class Fun(commands.Cog):
             await ctx.send(f"Your DMs are off {ctx.author}.")
 
     @commands.max_concurrency(1, per=commands.BucketType.channel)
-    @commands.command(
-        aliases=["c"]
-    )
+    @commands.command(aliases=["c"])
     async def cookie(self, ctx):
         """
         Yum yum.
         """
         cookies = ["🍪", "🥠"]
         reaction = random.choices(cookies, weights=[0.9, 0.1], k=1)[0]
-        embed = discord.Embed(description=f"First one to eat the {reaction} wins!", colour=bot.embed_colour)
+        embed = discord.Embed(description=f"First one to eat the {reaction} wins!", colour=ctx.bot.embed_colour)
         message = await ctx.send(embed=embed)
         await asyncio.sleep(4)
         for i in reversed(range(1, 4)):
-            await message.edit(embed=discord.Embed(description=str(i), colour=bot.embed_colour))
+            await message.edit(embed=discord.Embed(description=str(i), colour=ctx.bot.embed_colour))
             await asyncio.sleep(1)
-        # await asyncio.sleep(random.randint(1, 3))
-        await message.edit(embed=discord.Embed(description="Eat the cookie!", colour=bot.embed_colour))
+        await asyncio.sleep(random.randint(1, 3))
+        await message.edit(embed=discord.Embed(description="Eat the cookie!", colour=ctx.bot.embed_colour))
         await message.add_reaction(reaction)
         start = time.perf_counter()
         try:
-            _, user = await bot.wait_for("reaction_add", timeout=60,
-                                        check=lambda _reaction, user: _reaction.message.guild == ctx.guild
-                                        and _reaction.message.channel == ctx.message.channel
-                                        and _reaction.message == message and str(_reaction.emoji) == reaction and user != bot.user
-                                        and not user.bot)
+            _, user = await ctx.bot.wait_for(
+                "reaction_add",
+                check=lambda _reaction, user: _reaction.message.guild == ctx.guild
+                and _reaction.message.channel == ctx.message.channel
+                and _reaction.message == message and str(_reaction.emoji) == reaction and user != ctx.bot.user
+                and not user.bot,
+                timeout=60,)
         except asyncio.TimeoutError:
-            return await message.edit(embed=discord.Embed(description="No one ate the cookie...", colour=bot.embed_colour))
+            return await message.edit(embed=discord.Embed(description="No one ate the cookie...",
+                                                          colour=ctx.bot.embed_colour))
         end = time.perf_counter()
-        await message.edit(embed=discord.Embed(description=f"**{user}** ate the cookie in `{end - start:.3f}` seconds!", colour=bot.embed_colour))
+        await message.edit(embed=discord.Embed(description=f"**{user}** ate the cookie in `{end - start:.3f}` seconds!",
+                                               colour=ctx.bot.embed_colour))
 
-    @commands.command(
-        aliases=["ttt", "tic-tac-toe"]
-    )
+    @commands.command(aliases=["ttt", "tic-tac-toe"])
     async def tictactoe(self, ctx, *, player2: discord.Member):
         """
         Challenge someone to a game of tic-tac-toe!
@@ -254,12 +256,14 @@ class Fun(commands.Cog):
         await msg.add_reaction("\N{WHITE HEAVY CHECK MARK}")
         await msg.add_reaction("\N{CROSS MARK}")
         try:
-            response, _ = await bot.wait_for("reaction_add",
-                                check=lambda reaction, user: reaction.message.guild == ctx.guild
-                                and reaction.message.channel == ctx.message.channel
-                                and reaction.message == msg
-                                and str(reaction.emoji) in ["\N{WHITE HEAVY CHECK MARK}", "\N{CROSS MARK}"]
-                                and user == player2, timeout=300)
+            response, _ = await ctx.bot.wait_for(
+                "reaction_add",
+                check=lambda reaction, user: reaction.message.guild == ctx.guild
+                and reaction.message.channel == ctx.message.channel
+                and reaction.message == msg
+                and str(reaction.emoji) in ["\N{WHITE HEAVY CHECK MARK}", "\N{CROSS MARK}"]
+                and user == player2,
+                timeout=300)
         except asyncio.TimeoutError:
             return await ctx.send(f"**{player2}** took too long to respond. {msg.jump_url}")
         if response.emoji == "\N{CROSS MARK}":
@@ -284,5 +288,5 @@ class Fun(commands.Cog):
         await menu.start(ctx, wait=True)
 
 
-def setup(_):
+def setup(bot):
     bot.add_cog(Fun())
