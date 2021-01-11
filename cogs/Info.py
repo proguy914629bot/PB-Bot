@@ -158,14 +158,17 @@ class Info(commands.Cog):
         `member` - The member whose permissions you would like to view. Defaults to you.
         """
         member = member or ctx.author
-        perms = []
-        for perm, value in member.permissions_in(ctx.channel):
-            value = f"{ctx.bot.emoji_dict['xoff']}{ctx.bot.emoji_dict['tickon']}" \
-                if value else f"{ctx.bot.emoji_dict['xon']}{ctx.bot.emoji_dict['tickoff']}"
-            perms.append(f"{value} {perm.replace('_', ' ').replace('guild', 'server')}")
-        embed = discord.Embed(title=f"Permissions for {member} in {ctx.channel}",
-                              description="\n".join(perms),
+        perms = list(member.permissions_in(ctx.channel))
+        split_perms = [perms[x:x+10] for x in range(0, len(perms), 10)]
+        embed = discord.Embed(title=f"Permissions for `{member}` in `{ctx.channel}`",
                               colour=ctx.bot.embed_colour)
+        for li in split_perms:
+            field_perms = []
+            for perm, value in li:
+                v = f"{ctx.bot.emoji_dict['xoff']}{ctx.bot.emoji_dict['tickon']}" \
+                    if value else f"{ctx.bot.emoji_dict['xon']}{ctx.bot.emoji_dict['tickoff']}"
+                field_perms.append(f"{v} {perm.replace('_', ' ').replace('guild', 'server')}")
+            embed.add_field(name="\u200b", value="\n".join(field_perms))
         await ctx.send(embed=embed)
 
     @commands.command()
