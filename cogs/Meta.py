@@ -77,18 +77,30 @@ class Meta(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def xkcd(self, ctx, comic_number: int = None):
+    async def xkcd(self, ctx, query: typing.Union[int, str] = None):
         """
-        Get a specific or random comic from https://xkcd.com.
+        View comics from https://xkcd.com. Query by number or title.
 
-        `comic_number` - The comic number to search for. Defaults to a random number.
+        `query` - The comic to search for. Defaults to a random number.
         """
         async with ctx.typing():
-            if not comic_number:
+            if isinstance(query, str):
+                # query by title
+                async with ctx.bot.session.get(
+                        "https://www.explainxkcd.com/wiki/api.php",
+                        params={"action": "query", "list": "search", "format": "json", "srsearch": query,
+                                "srwhat": "title", "srlimit": "max"}) as resp:
+                    r = await resp.json()
+                    if result := r["query"]["search"]:
+                        num = result[0]["title"].split(":")[0]
+                    else:
+                        return await ctx.send("Couldn't find a comic with that query.")
+            elif isinstance(query, type(None)):
                 async with ctx.bot.session.get("https://xkcd.com/info.0.json") as resp:
                     max_num = (await resp.json())["num"]
-                comic_number = random.randint(1, max_num)
-            async with ctx.bot.session.get(f"https://xkcd.com/{comic_number}/info.0.json") as resp:
+                num = random.randint(1, max_num)
+
+            async with ctx.bot.session.get(f"https://xkcd.com/{num}/info.0.json") as resp:
                 if resp.status in range(400, 500):
                     return await ctx.send("Couldn't find a comic with that number.")
                 elif resp.status >= 500:
