@@ -57,7 +57,10 @@ class ErrorHandling(commands.Cog):
             try:
                 await ctx.send(embed=embed)
             except discord.HTTPException:  # missing send messages permission or discord is having issues
-                pass
+                try:
+                    await ctx.author.send(embed=embed)
+                except discord.HTTPException: #can't send to dms either
+                    pass
 
         elif isinstance(error, commands.MissingRequiredArgument):
             prefix = f"{ctx.clean_prefix.strip()} " if ctx.clean_prefix.endswith(" ") else ctx.clean_prefix
