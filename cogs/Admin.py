@@ -3,7 +3,7 @@ from discord.ext import commands, menus
 import datetime
 import re
 import subprocess
-
+import typing
 
 class Admin(commands.Cog):
     """
@@ -128,7 +128,7 @@ class Admin(commands.Cog):
         await ctx.send(f"Successfully purged `{counter}` message(s).")
 
     @admin.command()
-    async def emojisnipe(self, ctx, name: str, emoji: discord.Emoji = None):
+    async def emojisnipe(self, ctx, name: str, emoji: typing.Union[discord.Emoji,discord.PartialEmoji] = None):
         """
         Snipes emojis for personal use.
 
