@@ -6,61 +6,9 @@ from collections import Counter
 
 
 class DiscordStatusSource(menus.ListPageSource):
-    def __init__(self, summary, response):
-        super().__init__(range(6), per_page=1)
-        self.summary = summary
-        self.response = response
-
-    important_components = ("API", "Media Proxy", "Push Notifications", "Search", "Voice", "Third-party", "CloudFlare")
-
     def format_page(self, menu: menus.MenuPages, page):
-        # 0: general
-        # 1: component overview
-        # 2: most recent incident
-        # 3-5: month incidents
-        # 6+: maintenance info?
-        if menu.current_page == 0:  # general (n/n systems operational)
-            all_components = [component for component in self.summary["components"]
-                              if component['name'] in DiscordStatusSource.important_components]
-            operational = [component for component in all_components if component["status"] == "operational"]
-            embed = discord.Embed(
-                title="Discord Status\nCurrent Status for Discord",
-                description=f"**{self.summary['status']['description']}**\n"
-                f"**Impact**: `{self.summary['status']['indicator'].title()}`\n"
-                f"**Components Operational**: `{len(operational)}/{len(all_components)}`")
-
-        elif menu.current_page == 1:  # most recent incident
-            embed = discord.Embed(title="Discord Status\nCurrent Incidents")
-            if not self.summary["incidents"]:
-                embed.description = "There are no issues with discord as of yet."
-            else:
-                for incident in self.summary['incidents']:
-                    embed.add_field(name=incident["name"],
-                                    value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
-
-        elif menu.current_page == 2:  # component overview
-            embed = discord.Embed(title="Discord Status\nComponent Overview")
-            for component in self.summary["components"]:
-                if component['name'] in DiscordStatusSource.important_components:
-                    embed.add_field(
-                        name=component["name"],
-                        value=f"{component['description'] or 'No Description'}\n**Status**: `{component['status'].title()}`",
-                        inline=False)
-
-        elif menu.current_page in (3, 4, 5):
-            month_data = self.response["months"][menu.current_page - 3]
-            embed = discord.Embed(title=f"Discord Status\nIncidents for {month_data['name']} {month_data['year']}")
-            if len(month_data['incidents']) == 0:
-                embed.description = "There are no incidents this month."
-            else:
-                for incident in month_data['incidents']:
-                    embed.add_field(name=incident["name"],
-                                    value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
-
-        embed.colour = menu.ctx.bot.embed_colour
-        embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
-        return embed
-        # todo maintenance info?
+        page.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        return page
 
 
 class Info(commands.Cog):
@@ -86,8 +34,8 @@ class Info(commands.Cog):
         """
         Displays information about the current server.
         """
-        animated_emojis = filter(lambda emoji: emoji.animated, emoji)
-        not_animated_emojis = filter(lambda emoji: not emoji.animated, emoji)
+        animated_emojis = list(filter(lambda emoji: emoji.animated, ctx.guild.emojis))
+        not_animated_emojis = list(filter(lambda emoji: not emoji.animated, ctx.guild.emojis))
 
         member_statuses = Counter([member.status for member in ctx.guild.members])
 
@@ -143,11 +91,54 @@ class Info(commands.Cog):
         View the current status of discord. Source: https://discordstatus.com
         """
         async with ctx.typing():
-            async with ctx.bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/summary.json") as response:
-                summary = await response.json()
-            async with ctx.bot.session.get("https://discordstatus.com/history.json") as response:
-                response = await response.json()
-            await menus.MenuPages(DiscordStatusSource(summary, response), clear_reactions_after=True).start(ctx)
+            async with ctx.bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/summary.json") as r:
+                summary = await r.json()
+            async with ctx.bot.session.get("https://discordstatus.com/history.json") as r:
+                history = await r.json()
+            important_components = ("API", "Media Proxy", "Push Notifications", "Search", "Voice", "Third-party", "CloudFlare")
+            embeds = []
+            # embed 1
+            all_components = list(filter(lambda c: c["name"] in important_components, summary["components"]))
+            operational = list(filter(lambda c: c["status"] == "operational", all_components))
+            embed1 = discord.Embed(
+                title="Discord Status\nCurrent Status for Discord",
+                description=f"**{summary['status']['description']}**\n"
+                            f"**Impact**: `{summary['status']['indicator'].title()}`\n"
+                            f"**Components Operational**: `{len(operational)}/{len(all_components)}`",
+                colour=ctx.bot.embed_colour)
+            embeds.append(embed1)
+            # embed 2
+            embed2 = discord.Embed(title="Discord Status\nCurrent Incidents", colour=ctx.bot.embed_colour)
+            if not summary["incidents"]:
+                embed2.description = "There are no issues with discord as of yet."
+            else:
+                for incident in summary['incidents']:
+                    embed2.add_field(
+                        name=incident["name"],
+                        value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
+            embeds.append(embed2)
+            # embed 3
+            embed3 = discord.Embed(title="Discord Status\nComponent Overview", colour=ctx.bot.embed_colour)
+            for component in summary["components"]:
+                if component['name'] in important_components:
+                    embed3.add_field(
+                        name=component["name"],
+                        value=f"{component['description'] or 'No Description'}\n**Status**: `{component['status'].title()}`",
+                        inline=False)
+            embeds.append(embed3)
+            # embeds 4, 5 and 6
+            for i in range(3):
+                month_data = history["months"][i]
+                embed = discord.Embed(title=f"Discord Status\nIncidents for {month_data['name']} {month_data['year']}",
+                                      colour=ctx.bot.embed_colour)
+                if len(month_data["incidents"]) == 0:
+                    embed.description = "There are no incidents this month."
+                else:
+                    for incident in month_data["incidents"]:
+                        embed.add_field(name=incident["name"],
+                                        value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
+                embeds.append(embed)
+            await menus.MenuPages(DiscordStatusSource(embeds, per_page=1), clear_reactions_after=True).start(ctx)
 
     @commands.guild_only()
     @commands.command(aliases=["perms"])
