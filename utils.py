@@ -179,6 +179,8 @@ def humanize_list(li: list):
     """
     "Humanizes" a list.
     """
+    if not li:
+        return li
     if len(li) == 1:
         return li[0]
     if len(li) == 2:

@@ -198,6 +198,41 @@ class Info(commands.Cog):
             embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
             return embed
 
+    @commands.command(aliases=["ui"])
+    async def userinfo(self, ctx, *, member: discord.Member = None):
+        """
+        Get the userinfo for a member.
+
+        `member` - The member. Defaults to you.
+        """
+        member = member or ctx.author
+        embed = discord.Embed(title=f"Userinfo for {member}", colour=member.colour)
+        embed.set_thumbnail(url=member.avatar_url)
+        embed.add_field(
+            name="General",
+            value=
+            f"**Full Name:** {member}\n"
+            f"**ID:** {member.id}\n"
+            f"**Nickname:** {member.nick}\n"
+            f"**Display Name:** {member.display_name}\n"
+            f"**Bot:** {ctx.bot.emoji_dict['green_tick'] if member.bot else ctx.bot.emoji_dict['red_tick']}",
+            inline=False)
+        activity = f"{str(member.activity.type).split('.')[1].title()} {member.activity.name}" if member.activity else "None"
+        embed.add_field(
+            name="Presence Info",
+            value=
+            f"**Status:** {ctx.bot.emoji_dict[member.raw_status]}\n"
+            f"**Activity:** {activity}", inline=False)
+        embed.add_field(
+            name="Guild Info",
+            value=
+            f"**Joined:** {humanize.naturaldate(member.joined_at)} ({humanize.precisedelta(datetime.datetime.now() - member.joined_at)} ago)\n"
+            f"**Top Role:** {member.top_role.mention}\n"
+            f"**Roles:** {ctx.bot.utils.humanize_list([role.mention for role in member.roles[1:]]) or 'None'}",
+            inline=False)
+        embed.set_footer(text=f"Created {humanize.precisedelta(datetime.datetime.now() - member.created_at)} ago")
+        await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Info())
