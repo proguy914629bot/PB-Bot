@@ -149,8 +149,8 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         confirm = await ctx.bot.utils.Confirm("Are you sure that you want to clear the prefix list for the current server?").prompt(ctx)
         if confirm:
-            ctx.bot.prefixes[ctx.guild.id] = ["pb"]
-            await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = '{pb}' WHERE guild_id = $1", ctx.guild.id)
+            ctx.bot.prefixes.pop(ctx.guild.id, None)
+            await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
             await ctx.send("Cleared the list of server prefixes.")
 
     @commands.command()
