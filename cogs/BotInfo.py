@@ -96,16 +96,22 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")
-        if prefix in ctx.bot.prefixes[ctx.guild.id]:
-            return await ctx.send(f"`{prefix}` is already a prefix for this server.")
-        if len(ctx.bot.prefixes[ctx.guild.id]) > 50:
-            return await ctx.send("This server already has 50 prefixes.")
-        if ctx.guild.id not in ctx.bot.prefixes:
-            ctx.bot.prefixes[ctx.guild.id] = ['pb']
-            await ctx.bot.pool.execute("INSERT INTO prefixes VALUES($1,$2)", ctx.guild.id, ['pb'])
-        ctx.bot.prefixes[ctx.guild.id].append(prefix)
 
-        await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_append(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
+        prefixes = ctx.bot.prefixes.get(ctx.guild.id, None)
+        if prefixes is not None:  # will only do the checks if the guild has prefixes
+            if prefix in prefixes:
+                return await ctx.send(f"`{prefix}` is already a prefix for this server.")
+            if len(prefixes) > 50:
+                return await ctx.send("This server already has 50 prefixes.")
+
+            await ctx.bot.pool.execute(
+                "UPDATE prefixes SET guild_prefixes = array_append(guild_prefixes, $1) WHERE guild_id = $2", prefix,
+                ctx.guild.id)
+            ctx.bot.prefixes[ctx.guild.id].append(prefix)
+        else:
+            await ctx.bot.pool.execute("INSERT INTO prefixes VALUES ($1, $2)", ctx.guild.id, [prefix])
+            ctx.bot.prefixes[ctx.guild.id] = [prefix]
+
         await ctx.send(f"Added `{prefix}` to the list of server prefixes.")
 
     @commands.guild_only()
@@ -119,13 +125,20 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")
-        if prefix not in ctx.bot.prefixes[ctx.guild.id]:
-            return await ctx.send(f"Couldn't find `{prefix}` in the list of prefixes for this server.")
-        if len(ctx.bot.prefixes[ctx.guild.id]) == 1:
+
+        prefixes = ctx.bot.prefixes.get(ctx.guild.id, None)
+        if prefixes is None:
             return await ctx.send("Sorry, you can't remove this server's only prefix.")
+
+        if prefix not in prefixes:
+            return await ctx.send(f"Couldn't find `{prefix}` in the list of prefixes for this server.")
+
         ctx.bot.prefixes[ctx.guild.id].remove(prefix)
         await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_remove(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
         await ctx.send(f"Removed `{prefix}` from the list of server prefixes.")
+        if not ctx.bot.prefixes[ctx.guild.id]:
+            ctx.bot.prefixes.pop(ctx.guild.id)
+            await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
 
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -148,7 +161,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         embed = discord.Embed(title="Invite me to your server!", url=ctx.bot.invite_url, colour=ctx.bot.embed_colour)
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(aliases=["src"])
     async def source(self, ctx, *, command: str = None):
         """
         View my source code for a specific command.

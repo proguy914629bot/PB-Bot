@@ -19,5 +19,5 @@ CREATE TABLE IF NOT EXISTS errors (
 
 CREATE TABLE IF NOT EXISTS prefixes (
     guild_id bigint PRIMARY KEY,
-    guild_prefixes text[] DEFAULT '{pb}'
+    guild_prefixes text[]
     );
