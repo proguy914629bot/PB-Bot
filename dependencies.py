@@ -62,6 +62,17 @@ class PB_Bot(commands.Bot):
         self.github_url = "https://github.com/PB4162/PB-Bot"
         self.invite_url = discord.utils.oauth_url("719907834120110182", permissions=discord.Permissions(104189127))
         self.command_usage = Counter()
+        self._cd = commands.CooldownMapping.from_cooldown(rate=5, per=5, type=commands.BucketType.user)
+
+        @self.check
+        async def global_check(ctx):
+            # check if ratelimited
+            bucket = self._cd.get_bucket(ctx.message)
+            retry_after = bucket.update_rate_limit()
+            if retry_after:
+                raise StopSpammingMe()
+            return True
+
         self.emoji_dict = {
             "red_line": "<:red_line:793233362298601472>",
             "white_line": "<:white_line:793235072437846116>",
@@ -220,3 +231,7 @@ class CustomContext(commands.Context):
             return await self.reply(*args, **kwargs, mention_author=False)
         except discord.HTTPException:
             return await super().send(*args, **kwargs)
+
+
+class StopSpammingMe(commands.CheckFailure):
+    pass

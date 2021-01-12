@@ -4,6 +4,8 @@ import traceback
 from fuzzywuzzy import process
 import re
 
+from dependencies import StopSpammingMe
+
 
 class ErrorHandling(commands.Cog):
     """
@@ -45,6 +47,9 @@ class ErrorHandling(commands.Cog):
         elif isinstance(error, commands.BotMissingPermissions):
             perms = ctx.bot.utils.humanize_list(error.missing_perms).replace('_', ' ').replace('guild', 'server')
             await ctx.send(f"I am missing the `{perms}` permission(s) to use this command.")
+
+        elif isinstance(error, StopSpammingMe):
+            await ctx.send(f"{ctx.author.mention}, please stop spamming me.")
 
         elif isinstance(error, discord.HTTPException):
             embed = discord.Embed(
