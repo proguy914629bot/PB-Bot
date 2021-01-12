@@ -153,7 +153,7 @@ class PB_Bot(commands.Bot):
         tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
         midnight = datetime.datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day)
         dt = midnight - datetime.datetime.now()
-        await discord.utils.sleep_until(dt)
+        await asyncio.sleep(dt.total_seconds())
 
     async def on_command(self, ctx):
         self.command_usage.update({ctx.command.qualified_name: 1})
