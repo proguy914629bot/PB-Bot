@@ -181,32 +181,30 @@ class Fun(commands.Cog):
             return await ctx.send("You flipped a coin and it landed on it's `side`!")
         await ctx.send(f"You flipped a coin and got `{result}`!")
 
-    @commands.command(aliases=["cm"])
-    async def cleanmeme(self, ctx, category=None):
+    @commands.command()
+    async def reddit(self, ctx, *, subreddit):
         """
-        Gets a random post from r/CleanMemes.
+        Gets a random post from a subreddit of your choice.
 
-        `category` - The category to search in. Available categories: hot, new, top, rising.
+        `subreddit` - The subreddit.
         """
-        if category is None:
-            category = "hot"
-        category, _ = process.extractOne(category, ["hot", "new", "top", "rising"])
-        async with ctx.bot.session.get(f"https://www.reddit.com/r/CleanMemes/new.json?sort={category}") as r:
-            response = await r.json()
-            embed = discord.Embed(
-                title=response['data']['children']
-                [random.randint(0, len(response['data']['children']) - 1)]['data']['title'],
-                colour=ctx.bot.embed_colour)
-            embed.set_image(url=response['data']['children']
-                            [random.randint(0, len(response['data']['children']) - 1)]['data']['url'])
-        try:
-            await ctx.author.send(embed=embed)
-            try:
-                await ctx.message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
-            except discord.Forbidden:
-                pass
-        except discord.Forbidden:
-            await ctx.send(f"Your DMs are off {ctx.author}.")
+        async with ctx.bot.session.get(f"https://www.reddit.com/r/{subreddit}/new.json") as resp:
+            r = await resp.json()
+        if r.get("error", None) is not None:
+            return await ctx.send("Couldn't find a subreddit with that name.")
+        posts = r["data"]["children"]
+        random_post = posts[random.randint(0, len(posts))]
+        embed = discord.Embed(title=random_post["data"]["title"], colour=ctx.bot.embed_colour)
+        embed.set_image(url=random_post["data"]["url"])
+        if random_post["data"]["over_18"]:
+            cembed = discord.Embed(
+                title="This post has been marked as nsfw. Are you sure that you want to view it?",
+                description="If you agree, it will be sent to your dms.", colour=ctx.bot.embed_colour)
+            confirm = await ctx.bot.utils.EmbedConfirm(cembed).prompt(ctx)
+            if confirm:
+                await ctx.author.send(embed=embed)
+            return
+        await ctx.send(embed=embed)
 
     @commands.max_concurrency(1, per=commands.BucketType.channel)
     @commands.command(aliases=["c"])
