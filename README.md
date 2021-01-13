@@ -8,25 +8,25 @@ An easy to use, multipurpose discord bot written in Python.
 ## **Categories and Commands:**
 
 **Bot Info**
-> uptime | ping | botinfo | prefix | invite | source | commandleaderboard 
+> `uptime` | `ping` | `botinfo` | `prefix` | `invite` | `source` | `commandleaderboard` | `support`
 
 **Fun**
-> coinflip | reddit | cookie | tictactoe | snake
+> `coinflip` | `reddit` | `cookie` | `tictactoe` | `snake`
 
 **ImageManip**
-> solarize
+> `solarize`
 
 **Info**
-> avatar | serverinfo | discordstatus | permissions | define | userinfo
+> `avatar` | `serverinfo` | `discordstatus` | `permissions` | `define` | `userinfo`
 
 **Meta**
-> mystbin | hastebin | xkcd | ocr | ascii | owoify | todo
+> `mystbin` | `hastebin` | `xkcd` | `ocr` | `ascii` | `owoify` | `todo`
 
 **Moderation**
-> kick | ban
+> `kick` | `ban`
 
 **Music**
-> connect | player | songqueue | play | pause | skip | previous | volume | equalizer | fastforward | rewind | disconnect
+> `connect` | `player` | `songqueue` | `play` | `pause` | `skip` | `previous` | `volume` | `equalizer` | `fastforward` | `rewind` | `disconnect`
 
 ## **Signature:**
 
