@@ -207,6 +207,14 @@ class BotInfo(commands.Cog, name="Bot Info"):
                                                          or "No commands have been used today.")
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def support(self, ctx):
+        """
+        Displays my support server's invite link.
+        """
+        embed = discord.Embed(title=f"Support Server Invite", url=ctx.bot.support_server_invite, colour=ctx.bot.embed_colour)
+        await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(BotInfo())
