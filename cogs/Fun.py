@@ -280,17 +280,18 @@ class Fun(commands.Cog):
 
         `args` - The users who can control the game. Set this to `--public` to allow anyone to control the game.
         """
-        if "--public" in args:
-            player_ids = []
-        else:
-            player_ids = set()
-            for arg in args:
-                player = await commands.MemberConverter().convert(ctx, arg)
-                if not player.bot:
-                    player_ids.add(player.id)
-            player_ids.add(ctx.author.id)
-        menu = SnakeMenu(player_ids, clear_reactions_after=True)
-        await menu.start(ctx, wait=True)
+        async with ctx.typing():
+            if "--public" in args:
+                player_ids = []
+            else:
+                player_ids = set()
+                for arg in args:
+                    player = await commands.MemberConverter().convert(ctx, arg)
+                    if not player.bot:
+                        player_ids.add(player.id)
+                player_ids.add(ctx.author.id)
+            menu = SnakeMenu(player_ids, clear_reactions_after=True)
+            await menu.start(ctx, wait=True)
 
 
 def setup(bot):
