@@ -291,7 +291,7 @@ class Fun(commands.Cog):
                         player_ids.add(player.id)
                 player_ids.add(ctx.author.id)
             menu = SnakeMenu(player_ids, clear_reactions_after=True)
-            await menu.start(ctx, wait=True)
+        await menu.start(ctx, wait=True)  # end typing
 
 
 def setup(bot):
