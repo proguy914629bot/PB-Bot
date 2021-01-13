@@ -4,6 +4,9 @@ import random
 from fuzzywuzzy import process
 import asyncio
 import time
+import humanize
+import datetime
+
 from utils import SnakeGame
 
 
@@ -195,11 +198,20 @@ class Fun(commands.Cog):
             r = await resp.json()
         if r.get("error", None) is not None:
             return await ctx.send("Couldn't find a subreddit with that name.")
+
         posts = r["data"]["children"]
-        random_post = posts[random.randint(0, len(posts) - 2)]
-        embed = discord.Embed(title=random_post["data"]["title"], colour=ctx.bot.embed_colour)
-        embed.set_image(url=random_post["data"]["url"])
-        if random_post["data"]["over_18"]:
+        random_post = random.choice(posts)["data"]
+        posted_when = datetime.datetime.now() - datetime.datetime.fromtimestamp(random_post["created"])
+
+        embed = discord.Embed(
+            title=random_post["title"],
+            description=f"Posted by `u/{random_post['author']}` {humanize.naturaldelta(posted_when)} ago",
+            colour=ctx.bot.embed_colour)
+        embed.set_author(name=random_post["subreddit_name_prefixed"])
+        embed.set_image(url=random_post["url"])
+        embed.set_footer(text=f"{random_post['num_comments']} comment{'s' if random_post['num_comments'] > 1 else ''} • {random_post['upvote_ratio'] * 100}% upvote ratio")
+
+        if random_post["over_18"]:
             cembed = discord.Embed(
                 title="This post has been marked as nsfw. Are you sure that you want to view it?",
                 description="If you agree, it will be sent to your dms.", colour=ctx.bot.embed_colour)
