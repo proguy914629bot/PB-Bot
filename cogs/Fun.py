@@ -193,7 +193,7 @@ class Fun(commands.Cog):
         if r.get("error", None) is not None:
             return await ctx.send("Couldn't find a subreddit with that name.")
         posts = r["data"]["children"]
-        random_post = posts[random.randint(0, len(posts))]
+        random_post = posts[random.randint(0, len(posts) - 2)]
         embed = discord.Embed(title=random_post["data"]["title"], colour=ctx.bot.embed_colour)
         embed.set_image(url=random_post["data"]["url"])
         if random_post["data"]["over_18"]:

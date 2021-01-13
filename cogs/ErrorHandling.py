@@ -64,7 +64,7 @@ class ErrorHandling(commands.Cog):
             except discord.HTTPException:  # missing send messages permission or discord is having issues
                 try:
                     await ctx.author.send(embed=embed)
-                except discord.HTTPException: #can't send to dms either
+                except discord.HTTPException:  # can't send to dms either
                     pass
 
         elif isinstance(error, commands.MissingRequiredArgument):
