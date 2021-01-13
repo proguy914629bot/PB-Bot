@@ -76,10 +76,17 @@ class ErrorHandling(commands.Cog):
         elif isinstance(error, (commands.MessageNotFound, commands.ChannelNotFound, commands.MemberNotFound, commands.EmojiNotFound, commands.RoleNotFound, commands.UserNotFound)):
             await ctx.send(error)
 
-        elif isinstance(error, (commands.BadArgument, commands.BadUnionArgument)):
+        elif isinstance(error, commands.BadArgument):
             embed = discord.Embed(
                 title=str(error).replace("int", "integer"),
                 description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.", colour=ctx.bot.embed_colour)
+            await ctx.send(embed=embed)
+
+        elif isinstance(error, commands.BadUnionArgument):
+            embed = discord.Embed(
+                title=str(error),
+                description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.",
+                colour=ctx.bot.embed_colour)
             await ctx.send(embed=embed)
 
         elif isinstance(error, commands.TooManyArguments):
