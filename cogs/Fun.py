@@ -28,8 +28,11 @@ class SnakeMenu(menus.Menu):
     async def get_players(self):
         if not self.player_ids:
             return "anyone can control the game"
-        return "\n".join(
-            str(player) for player in [await self.ctx.bot.fetch_user(player_id) for player_id in self.player_ids])
+        players = [str(await self.ctx.bot.fetch_user(player_id)) for player_id in self.player_ids]
+        if len(self.player_ids) > 10:
+            first10 = "\n".join(player for player in players[:10])
+            return f"{first10}\nand {len(players[10:])} more..."
+        return "\n".join(str(player) for player in players)
 
     async def refresh_embed(self):
         self.embed = discord.Embed(title=f"Snake Game", description=self.game.show_grid(),
@@ -280,8 +283,12 @@ class Fun(commands.Cog):
         if "--public" in args:
             player_ids = []
         else:
-            player_ids = [(await commands.MemberConverter().convert(ctx, arg)).id for arg in args]
-            player_ids.append(ctx.author.id)
+            player_ids = set()
+            for arg in args:
+                player = await commands.MemberConverter().convert(ctx, arg)
+                if not player.bot:
+                    player_ids.add(player.id)
+            player_ids.add(ctx.author.id)
         menu = SnakeMenu(player_ids, clear_reactions_after=True)
         await menu.start(ctx, wait=True)
 
