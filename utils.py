@@ -196,22 +196,7 @@ class SnakeGame:
         self.apple = apple
         self.empty = empty
         self.border = border
-
-        self.grid = [
-            [self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border],  # 0
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 1
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 2
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 3
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 4
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 5
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 6
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 7
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 8
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 9
-            [self.border, self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.empty,  self.border],  # 10
-            [self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border, self.border],  # 11
-        ]
-        #         0             1            2            3           4            5             6            7            8           9            10          11
+        self.grid = [[[self.empty,self.border][i == 0 or i == 11 or j == 0 or j == 11] for i in range(12)] for j in range(12)]
         self.snake_x = random.randint(1, 10)
         self.snake_y = random.randint(1, 10)
         self.snake = deque()
@@ -231,19 +216,7 @@ class SnakeGame:
         for grid_entry in self.grid:
             for item in grid_entry:
                 li.append(item)
-        return  \
-            f"{self.grid[0][0]}{self.grid[0][1]}{self.grid[0][2]}{self.grid[0][3]}{self.grid[0][4]}{self.grid[0][5]}{self.grid[0][6]}{self.grid[0][7]}{self.grid[0][8]}{self.grid[0][9]}{self.grid[0][10]}{self.grid[0][11]}\n" \
-            f"{self.grid[1][0]}{self.grid[1][1]}{self.grid[1][2]}{self.grid[1][3]}{self.grid[1][4]}{self.grid[1][5]}{self.grid[1][6]}{self.grid[1][7]}{self.grid[1][8]}{self.grid[1][9]}{self.grid[1][10]}{self.grid[1][11]}\n" \
-            f"{self.grid[2][0]}{self.grid[2][1]}{self.grid[2][2]}{self.grid[2][3]}{self.grid[2][4]}{self.grid[2][5]}{self.grid[2][6]}{self.grid[2][7]}{self.grid[2][8]}{self.grid[2][9]}{self.grid[2][10]}{self.grid[2][11]}\n" \
-            f"{self.grid[3][0]}{self.grid[3][1]}{self.grid[3][2]}{self.grid[3][3]}{self.grid[3][4]}{self.grid[3][5]}{self.grid[3][6]}{self.grid[3][7]}{self.grid[3][8]}{self.grid[3][9]}{self.grid[3][10]}{self.grid[3][11]}\n" \
-            f"{self.grid[4][0]}{self.grid[4][1]}{self.grid[4][2]}{self.grid[4][3]}{self.grid[4][4]}{self.grid[4][5]}{self.grid[4][6]}{self.grid[4][7]}{self.grid[4][8]}{self.grid[4][9]}{self.grid[4][10]}{self.grid[4][11]}\n" \
-            f"{self.grid[5][0]}{self.grid[5][1]}{self.grid[5][2]}{self.grid[5][3]}{self.grid[5][4]}{self.grid[5][5]}{self.grid[5][6]}{self.grid[5][7]}{self.grid[5][8]}{self.grid[5][9]}{self.grid[5][10]}{self.grid[5][11]}\n" \
-            f"{self.grid[6][0]}{self.grid[6][1]}{self.grid[6][2]}{self.grid[6][3]}{self.grid[6][4]}{self.grid[6][5]}{self.grid[6][6]}{self.grid[6][7]}{self.grid[6][8]}{self.grid[6][9]}{self.grid[6][10]}{self.grid[6][11]}\n" \
-            f"{self.grid[7][0]}{self.grid[7][1]}{self.grid[7][2]}{self.grid[7][3]}{self.grid[7][4]}{self.grid[7][5]}{self.grid[7][6]}{self.grid[7][7]}{self.grid[7][8]}{self.grid[7][9]}{self.grid[7][10]}{self.grid[7][11]}\n" \
-            f"{self.grid[8][0]}{self.grid[8][1]}{self.grid[8][2]}{self.grid[8][3]}{self.grid[8][4]}{self.grid[8][5]}{self.grid[8][6]}{self.grid[8][7]}{self.grid[8][8]}{self.grid[8][9]}{self.grid[8][10]}{self.grid[8][11]}\n" \
-            f"{self.grid[9][0]}{self.grid[9][1]}{self.grid[9][2]}{self.grid[9][3]}{self.grid[9][4]}{self.grid[9][5]}{self.grid[9][6]}{self.grid[9][7]}{self.grid[9][8]}{self.grid[9][9]}{self.grid[9][10]}{self.grid[9][11]}\n" \
-            f"{self.grid[10][0]}{self.grid[10][1]}{self.grid[10][2]}{self.grid[10][3]}{self.grid[10][4]}{self.grid[10][5]}{self.grid[10][6]}{self.grid[10][7]}{self.grid[10][8]}{self.grid[10][9]}{self.grid[10][10]}{self.grid[10][11]}\n" \
-            f"{self.grid[11][0]}{self.grid[11][1]}{self.grid[11][2]}{self.grid[11][3]}{self.grid[11][4]}{self.grid[11][5]}{self.grid[11][6]}{self.grid[11][7]}{self.grid[11][8]}{self.grid[11][9]}{self.grid[11][10]}{self.grid[11][11]}\n"
+        return "\n".join(["".join([self.grid[i][j] for j in range(12)]) for i in range(12)])
 
     def spawn_apple(self):
         while True:
