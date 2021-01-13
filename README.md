@@ -3,21 +3,32 @@ An easy to use, multipurpose discord bot written in Python.
 
 [Invite Link](https://discord.com/oauth2/authorize?client_id=719907834120110182&scope=bot&permissions=104189127)
 
-### **Categories:**
+[Support Server Invite](https://discord.gg/qQVDqXvmVt)
 
-Info
+## **Categories and Commands:**
 
-Bot Info
+**Bot Info**
+> uptime | ping | botinfo | prefix | invite | source | commandleaderboard 
 
-Fun
+**Fun**
+> coinflip | reddit | cookie | tictactoe | snake
 
-Meta
+**ImageManip**
+> solarize
 
-Moderation
+**Info**
+> avatar | serverinfo | discordstatus | permissions | define | userinfo
 
-Music
+**Meta**
+> mystbin | hastebin | xkcd | ocr | ascii | owoify | todo
 
-### **Signature:**
+**Moderation**
+> kick | ban
+
+**Music**
+> connect | player | songqueue | play | pause | skip | previous | volume | equalizer | fastforward | rewind | disconnect
+
+## **Signature:**
 
 ```
 <argument> - Required argument
