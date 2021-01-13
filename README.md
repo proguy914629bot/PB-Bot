@@ -33,6 +33,7 @@ An easy to use, multipurpose discord bot written in Python.
 ```
 <argument> - Required argument
 [argument] - Optional argument
+argument... - Multiple arguments can be provided
 ```
 
 **Please do not run your own instance.** There is nothing stopping you from doing so, but please don't as this bot is difficult to setup.
