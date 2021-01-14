@@ -239,7 +239,7 @@ class CustomContext(commands.Context):
         mention_author = kwargs.get("mention_author", "")
         if mention_author:
             mention_author = f"{self.author.mention} "
-        quote = "\n".join(f"> {string}" for string in content.split("\n"))
+        quote = "\n".join(f"> {string}" for string in self.message.content.split("\n"))
         quote_msg = f"{quote}\n{mention_author}{content}"
         return await super().send(quote_msg, **kwargs)
 
