@@ -93,7 +93,7 @@ class ImageManip(commands.Cog):
     @commands.command()
     async def rainbow(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
-        Adds colour to an image and makes it more vibrant.
+        🌈
 
         `image` - The image. Can be a user (for their avatar), an emoji or an attachment. Defaults to your avatar.
         """
