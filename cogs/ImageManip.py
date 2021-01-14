@@ -35,7 +35,7 @@ class ImageManip(commands.Cog):
         return embed, file
 
     @commands.command()
-    async def solarize(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def solarize(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Solarize an image.
 
@@ -49,7 +49,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command()
-    async def greyscale(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def greyscale(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Greyscale an image.
 
@@ -63,7 +63,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command(aliases=["colorize"])
-    async def colourize(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def colourize(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Enhances the colour in an image.
 
@@ -77,7 +77,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command()
-    async def noise(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def noise(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Adds noise to an image.
 
@@ -91,7 +91,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command()
-    async def rainbow(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def rainbow(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         🌈
 
@@ -105,7 +105,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command()
-    async def desaturate(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def desaturate(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Desaturates an image.
 
@@ -119,7 +119,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command(aliases=["enhanceedges", "enhance-edges", "enhance-e"])
-    async def enhance_edges(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def enhance_edges(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Enhances the edges in an image.
 
@@ -133,7 +133,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command()
-    async def emboss(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def emboss(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Adds an emboss-like effect to an image.
 
@@ -147,7 +147,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command()
-    async def invert(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def invert(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Inverts the colours in an image.
 
@@ -161,7 +161,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command(aliases=["pinknoise", "pink-noise"])
-    async def pink_noise(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def pink_noise(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Adds pink noise to an image.
 
@@ -175,7 +175,7 @@ class ImageManip(commands.Cog):
             await ctx.send(embed=embed, file=file)
 
     @commands.command()
-    async def sepia(self, ctx, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
+    async def sepia(self, ctx, *, image: typing.Union[discord.PartialEmoji, discord.Member] = None):
         """
         Adds a brown tint to an image.
 
