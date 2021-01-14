@@ -14,7 +14,7 @@ An easy to use, multipurpose discord bot written in Python.
 > `coinflip` | `reddit` | `cookie` | `tictactoe` | `snake`
 
 **ImageManip**
-> `solarize`
+> `solarize` | `greyscale` | `colourize` | `noise` | `rainbow` | `desaturate` | `enhance_edges` | `emboss` | `invert` | `pink_noise` | `sepia`
 
 **Info**
 > `avatar` | `serverinfo` | `discordstatus` | `permissions` | `define` | `userinfo`
