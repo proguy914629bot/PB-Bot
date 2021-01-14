@@ -233,6 +233,15 @@ class CustomContext(commands.Context):
         except discord.HTTPException:
             return await super().send(*args, **kwargs)
 
+    async def quote(self, content=None, **kwargs):
+        if content is None:
+            content = ""
+        mention_author = kwargs.get("mention_author", "")
+        if mention_author:
+            mention_author = f"{self.author.mention} "
+        quote_msg = f"> {self.message.content}\n{mention_author}{content}"
+        return await super().send(quote_msg, **kwargs)
+
 
 class StopSpammingMe(commands.CheckFailure):
     pass
