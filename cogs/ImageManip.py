@@ -7,7 +7,7 @@ import typing
 
 class ImageManip(commands.Cog):
     """
-    Image manipulation commands.
+    Image manipulation commands. Powered by [polaroid](https://github.com/Daggy1234/polaroid).
     """
     @staticmethod
     async def get_img(ctx, img: typing.Union[discord.PartialEmoji, discord.Member, None]):
