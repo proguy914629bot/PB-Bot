@@ -204,7 +204,7 @@ class Fun(commands.Cog):
         posted_when = datetime.datetime.now() - datetime.datetime.fromtimestamp(random_post["created"])
 
         embed = discord.Embed(
-            title=random_post["title"],
+            title=random_post["title"], url=random_post["url"],
             description=f"Posted by `u/{random_post['author']}` {humanize.naturaldelta(posted_when)} ago\n"
             f"{ctx.bot.emoji_dict['upvote']} {random_post['ups']} {ctx.bot.emoji_dict['downvote']} {random_post['downs']}",
             colour=ctx.bot.embed_colour)
