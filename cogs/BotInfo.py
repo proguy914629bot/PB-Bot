@@ -6,6 +6,7 @@ import psutil
 import time
 import sys
 import inspect
+from jishaku import Jishaku
 
 
 class BotInfo(commands.Cog, name="Bot Info"):
@@ -177,6 +178,8 @@ class BotInfo(commands.Cog, name="Bot Info"):
         command = ctx.bot.help_command if command.lower() == "help" else ctx.bot.get_command(command)
         if not command:
             return await ctx.send("Couldn't find command.")
+        if isinstance(command.cog, Jishaku):
+            return await ctx.send("<https://github.com/Gorialis/jishaku>")
 
         if isinstance(command, commands.HelpCommand):
             lines, starting_line_num = inspect.getsourcelines(type(command))
