@@ -30,15 +30,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
 
         `accuracy` - The amount of decimal places to show. Defaults to 2.
         """
-        start = time.perf_counter()
-        await ctx.trigger_typing()
-        api_response_time = time.perf_counter() - start
-        try:
-            await ctx.send(embed=discord.Embed(
+        embed = discord.Embed(
                 title="Pong!",
                 description=
                 f"**Websocket Latency:** `{ctx.bot.latency * 1000:.{accuracy}f}ms`\n"
-                f"**API response time:** `{api_response_time * 1000:.{accuracy}f}ms`", colour=ctx.bot.embed_colour))
+                f"**API Response Time:** `{await ctx.bot.api_ping(ctx) * 1000:.{accuracy}f}ms`\n"
+                f"**Database Response Time:** `{await ctx.bot.db_ping() * 1000:.{accuracy}f}ms`",
+                colour=ctx.bot.embed_colour)
+        try:
+            await ctx.send(embed=embed)
         except (discord.errors.HTTPException, ValueError):
             await ctx.send(f"Too many decimal places ({accuracy}).")
 
