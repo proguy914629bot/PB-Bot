@@ -205,7 +205,8 @@ class Fun(commands.Cog):
 
         embed = discord.Embed(
             title=random_post["title"],
-            description=f"Posted by `u/{random_post['author']}` {humanize.naturaldelta(posted_when)} ago",
+            description=f"Posted by `u/{random_post['author']}` {humanize.naturaldelta(posted_when)} ago\n"
+            f"{ctx.bot.emoji_dict['upvote']} {random_post['ups']} {ctx.bot.emoji_dict['downvote']} {random_post['downs']}",
             colour=ctx.bot.embed_colour)
         embed.set_author(name=random_post["subreddit_name_prefixed"])
         embed.set_image(url=random_post["url"])
