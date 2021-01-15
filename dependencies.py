@@ -13,6 +13,7 @@ import asyncpg
 import utils
 from collections import Counter
 import json
+import time
 
 
 logger = logging.getLogger("discord")
@@ -126,6 +127,16 @@ class PB_Bot(commands.Bot):
             """todo:"""
 
         return commands.check(predicate)
+
+    async def api_ping(self, ctx):
+        with self.utils.StopWatch() as sw:
+            await ctx.trigger_typing()
+        return sw.elapsed
+
+    async def db_ping(self):
+        with self.utils.StopWatch() as sw:
+            await self.pool.fetch("SELECT * FROM information_schema.tables")
+        return sw.elapsed
 
     @tasks.loop(minutes=30)
     async def presence_update(self):
