@@ -90,6 +90,8 @@ class PB_Bot(commands.Bot):
             "tickoff": "<:tickoff:799429264188637184>",
             "xon": "<:xon:799428912195174442>",
             "xoff": "<:xoff:799428963775807489>",
+            "upvote": "<:upvote:799432692595687514>",
+            "downvote": "<:downvote:799432736892911646>",
         }
 
     async def get_context(self, message: discord.Message, *, cls=None):
