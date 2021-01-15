@@ -142,7 +142,7 @@ class Admin(commands.Cog):
             if not ctx.message.attachments:
                 return await ctx.send("No emoji provided.")
             emoji = await ctx.message.attachments[0].read()
-        await ctx.bot.get_guild(719665666696675369).create_custom_emoji(name=name, image=emoji)
+        await ctx.bot.get_guild(798329404325101600).create_custom_emoji(name=name, image=emoji)
         await ctx.send("👌")
 
     class ErrorSource(menus.ListPageSource):
