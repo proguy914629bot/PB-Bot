@@ -88,8 +88,8 @@ class PB_Bot(commands.Bot):
             "dnd": "<:dnd:799429487749103627>",
             "tickon": "<:tickon:799429228415156294>",
             "tickoff": "<:tickoff:799429264188637184>",
-            "xon": "<:xon:798278986018717696>",
-            "xoff": "<:xoff:798279033078284288>",
+            "xon": "<:xon:799428912195174442>",
+            "xoff": "<:xoff:799428963775807489>",
         }
 
     async def get_context(self, message: discord.Message, *, cls=None):
