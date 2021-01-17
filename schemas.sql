@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS prefixes (
     guild_prefixes text[]
     );
 
-CREATE TABLE IF NOT EXISTS command_usage (
+CREATE TABLE IF NOT EXISTS command_stats (
     date date,
-    command_usage json,
-    command_users json
+    commands text,
+    users text
 )
