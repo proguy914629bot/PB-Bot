@@ -21,3 +21,9 @@ CREATE TABLE IF NOT EXISTS prefixes (
     guild_id bigint PRIMARY KEY,
     guild_prefixes text[]
     );
+
+CREATE TABLE IF NOT EXISTS command_usage (
+    date date,
+    command_usage json,
+    command_users json
+)
