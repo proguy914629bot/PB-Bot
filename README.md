@@ -8,7 +8,7 @@ An easy to use, multipurpose discord bot written in Python.
 ## **Categories and Commands:**
 
 **Bot Info**
-> `uptime` | `ping` | `botinfo` | `prefix` | `invite` | `source` | `commandleaderboard` | `support`
+> `uptime` | `ping` | `botinfo` | `prefix` | `invite` | `source` | `stats` | `support`
 
 **Fun**
 > `coinflip` | `reddit` | `cookie` | `tictactoe` | `snake`
