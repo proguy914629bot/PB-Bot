@@ -13,7 +13,6 @@ import asyncpg
 import utils
 from collections import Counter
 import json
-import time
 
 
 logger = logging.getLogger("discord")
@@ -30,7 +29,7 @@ async def get_prefix(bot, message: discord.Message):
     if not message.guild:
         prefixes = ['pb']
     else:
-        prefixes = bot.prefixes.get(message.guild.id, ['pb'])
+        prefixes = bot.cache.prefixes.get(message.guild.id, ['pb'])
     for prefix in prefixes:
         match = re.match(f"^({prefix}\s*).*", message.content, flags=re.IGNORECASE)
         if match:
@@ -55,15 +54,19 @@ class PB_Bot(commands.Bot):
         self.session = aiohttp.ClientSession()
         self.wavelink = wavelink.Client(bot=self)
         self.coglist = [f"cogs.{item[:-3]}" for item in os.listdir("cogs") if item != "__pycache__"] + ["jishaku"]
+
         self.pool = asyncio.get_event_loop().run_until_complete(asyncpg.create_pool(**config["database"]))
+
         self.utils = utils
         self.command_list = []
         self.embed_colour = 0x01ad98
-        self.prefixes = {}  # {guildId: [pb, PB, Pb]}
+
+        self.cache = Cache(self)
+
         self.github_url = "https://github.com/PB4162/PB-Bot"
         self.invite_url = discord.utils.oauth_url("719907834120110182", permissions=discord.Permissions(104189127))
         self.support_server_invite = "https://discord.gg/qQVDqXvmVt"
-        self.command_usage = Counter()
+
         self._cd = commands.CooldownMapping.from_cooldown(rate=5, per=5, type=commands.BucketType.user)
 
         @self.check
@@ -112,7 +115,7 @@ class PB_Bot(commands.Bot):
 
     async def on_guild_leave(self, guild: discord.Guild):
         await self.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", guild.id)
-        self.prefixes.pop(guild.id, None)
+        self.cache.prefixes.pop(guild.id, None)
 
     def beta_command(self):
         async def predicate(ctx):
@@ -120,12 +123,6 @@ class PB_Bot(commands.Bot):
                 await ctx.send(f"The `{ctx.command}` command is currently in beta. Only my owner can use it.")
                 return False
             return True
-        return commands.check(predicate)
-
-    def whitelisted_servers(self):
-        async def predicate(ctx):
-            """todo:"""
-
         return commands.check(predicate)
 
     async def api_ping(self, ctx):
@@ -152,42 +149,39 @@ class PB_Bot(commands.Bot):
         await self.wait_until_ready()
 
     @tasks.loop(hours=24)
-    async def clear_command_usage(self):
-        if os.path.exists("temp.json"):
-            os.remove("temp.json")
-        self.command_usage.clear()
+    async def refresh_command_usage(self):
+        # dump
+        yesterday = datetime.date.today() - datetime.timedelta(days=1)
+        await self.pool.execute("INSERT INTO command_usage VALUES ($1, $2, $3)",
+                                yesterday, dict(self.cache.command_stats["top_commands_today"]),
+                                dict(self.cache.command_stats["top_users_today"]))
 
-    @clear_command_usage.before_loop
-    async def clear_command_usage_before(self):
-        if os.path.exists("temp.json"):
-            with open("temp.json") as f:
-                self.command_usage.update(json.load(f))
-            os.remove("temp.json")
+        # clear
+        self.cache.command_stats["top_commands_today"].clear()
+        self.cache.command_stats["top_users_today"].clear()
 
+    @refresh_command_usage.before_loop
+    async def refresh_command_usage_before(self):
+        # wait until midnight to start the loop
         tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
         midnight = datetime.datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day)
         dt = midnight - datetime.datetime.now()
         await asyncio.sleep(dt.total_seconds())
 
     async def on_command(self, ctx):
-        self.command_usage.update({ctx.command.qualified_name: 1})
+        self.cache.command_stats["top_commands_today"].update({ctx.command.qualified_name: 1})
+        self.cache.command_stats["top_commands_overall"].update({ctx.command.qualified_name: 1})
+
+        self.cache.command_stats["top_users_today"].update({ctx.author.id: 1})
+        self.cache.command_stats["top_users_overall"].update({ctx.author.id: 1})
 
     async def close(self):
-        with open("temp.json", "w") as f:
-            json.dump(dict(self.command_usage), f)
+        await self.cache.dump_command_stats()  # temporarily storing them
         await super().close()
 
-    async def load_prefixes(self):
-        for entry in await self.pool.fetch("SELECT * FROM prefixes"):
-            self.prefixes[entry["guild_id"]] = entry["guild_prefixes"]
-
-    # async def dump_prefixes(self):
-    #     for guild_id, prefixes in self.prefixes.items():
-    #         await self.pool.execute("UPDATE prefixes SET guild_prefixes = $1 WHERE guild_id = $2", prefixes, guild_id)
-    #
     # @tasks.loop(minutes=10)
     # async def dump_prefixes_task(self):
-    #     await self.dump_prefixes()
+    #     await self.cache.dump_prefixes()
 
     async def schemas(self):
         with open("schemas.sql") as f:
@@ -198,7 +192,8 @@ class PB_Bot(commands.Bot):
             self.load_extension(cog)
 
         self.loop.run_until_complete(self.schemas())
-        self.loop.run_until_complete(self.load_prefixes())
+        self.loop.run_until_complete(self.cache.load_prefixes())
+        self.loop.run_until_complete(self.cache.load_command_stats())
 
         for command in self.commands:
             self.command_list.append(str(command))
@@ -216,7 +211,7 @@ class PB_Bot(commands.Bot):
                                     self.command_list.append(str(subcommand3))
                                     self.command_list.extend([f"{subcommand2} {subcommand3_alias}" for subcommand3_alias in subcommand3.aliases])
 
-        self.clear_command_usage.start()
+        self.refresh_command_usage.start()
         self.presence_update.start()
         super().run(*args, **kwargs)
 
@@ -227,6 +222,36 @@ class PB_Bot(commands.Bot):
     async def hastebin(self, data):
         async with self.session.post('https://hastebin.com/documents', data=data) as r:
             return f"https://hastebin.com/{(await r.json())['key']}"
+
+
+class Cache:
+    def __init__(self, bot: PB_Bot):
+        self.bot = bot
+
+        self.prefixes = {}
+        self.command_stats = {"top_commands_today": Counter(), "top_commands_overall": Counter(),
+                              "top_users_today": Counter(), "top_users_overall": Counter()}
+
+    async def load_prefixes(self):
+        for entry in await self.bot.pool.fetch("SELECT * FROM prefixes"):
+            self.prefixes[entry["guild_id"]] = entry["guild_prefixes"]
+
+    async def dump_prefixes(self):
+        for guild_id, prefixes in self.prefixes.items():
+            await self.bot.pool.execute("UPDATE prefixes SET guild_prefixes = $1 WHERE guild_id = $2", prefixes, guild_id)
+
+    async def load_command_stats(self):
+        if os.path.exists("temp.json"):
+            with open("temp.json") as f:
+                data = json.load(f)
+                self.command_stats["top_commands_today"].update(data["top_commands_today"])
+                self.command_stats["top_commands_overall"].update(data["top_commands_overall"])
+                self.command_stats["top_users_today"].update(data["top_users_today"])
+                self.command_stats["top_users_overall"].update(data["top_users_overall"])
+
+    async def dump_command_stats(self):
+        with open("temp.json", "w") as f:
+            json.dump(self.command_stats, f)
 
 
 class CustomContext(commands.Context):

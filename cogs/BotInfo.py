@@ -9,6 +9,14 @@ import inspect
 from jishaku import Jishaku
 
 
+def top5(items: list):
+    top5items = zip(items, ["🥇", "🥈", "🥉", "🏅", "🏅"])
+    return "\n".join(
+        f"{ranking[1]} {ranking[0][0]} ({ranking[0][1]} use{'' if ranking[0][1] == 1 else 's'})"
+        for ranking in top5items
+    )
+
+
 class BotInfo(commands.Cog, name="Bot Info"):
     """
     Commands that display information about the bot.
@@ -81,7 +89,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if not ctx.guild:
             return await ctx.send("My prefix is always `pb` in direct messages. You can also mention me.")
-        prefixes = ctx.bot.prefixes.get(ctx.guild.id, ["pb"])
+        prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, ["pb"])
         if len(prefixes) == 1:
             return await ctx.send(f"My prefix for this server is `{prefixes[0]}`.")
         await ctx.send(f"My prefixes for this server are `{ctx.bot.utils.humanize_list(prefixes)}`.")
@@ -98,7 +106,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")
 
-        prefixes = ctx.bot.prefixes.get(ctx.guild.id, None)
+        prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
         if prefixes is not None:  # will only do the checks if the guild has prefixes
             if prefix in prefixes:
                 return await ctx.send(f"`{prefix}` is already a prefix for this server.")
@@ -108,10 +116,10 @@ class BotInfo(commands.Cog, name="Bot Info"):
             await ctx.bot.pool.execute(
                 "UPDATE prefixes SET guild_prefixes = array_append(guild_prefixes, $1) WHERE guild_id = $2", prefix,
                 ctx.guild.id)
-            ctx.bot.prefixes[ctx.guild.id].append(prefix)
+            ctx.bot.cache.prefixes[ctx.guild.id].append(prefix)
         else:
             await ctx.bot.pool.execute("INSERT INTO prefixes VALUES ($1, $2)", ctx.guild.id, [prefix])
-            ctx.bot.prefixes[ctx.guild.id] = [prefix]
+            ctx.bot.cache.prefixes[ctx.guild.id] = [prefix]
 
         await ctx.send(f"Added `{prefix}` to the list of server prefixes.")
 
@@ -127,18 +135,19 @@ class BotInfo(commands.Cog, name="Bot Info"):
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long.")
 
-        prefixes = ctx.bot.prefixes.get(ctx.guild.id, None)
+        prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
         if prefixes is None:
             return await ctx.send("Sorry, you can't remove this server's only prefix.")
 
         if prefix not in prefixes:
             return await ctx.send(f"Couldn't find `{prefix}` in the list of prefixes for this server.")
 
-        ctx.bot.prefixes[ctx.guild.id].remove(prefix)
+        ctx.bot.cache.prefixes[ctx.guild.id].remove(prefix)
         await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_remove(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
         await ctx.send(f"Removed `{prefix}` from the list of server prefixes.")
-        if not ctx.bot.prefixes[ctx.guild.id]:
-            ctx.bot.prefixes.pop(ctx.guild.id)
+
+        if not ctx.bot.cache.prefixes[ctx.guild.id]:
+            ctx.bot.cache.prefixes.pop(ctx.guild.id)
             await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
 
     @commands.guild_only()
@@ -150,7 +159,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         confirm = await ctx.bot.utils.Confirm("Are you sure that you want to clear the prefix list for the current server?").prompt(ctx)
         if confirm:
-            ctx.bot.prefixes.pop(ctx.guild.id, None)
+            ctx.bot.cache.prefixes.pop(ctx.guild.id, None)
             await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
             await ctx.send("Cleared the list of server prefixes.")
 
@@ -197,17 +206,26 @@ class BotInfo(commands.Cog, name="Bot Info"):
             colour=ctx.bot.embed_colour)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["cl"])
-    async def commandleaderboard(self, ctx):
+    @commands.command()
+    async def stats(self, ctx):
         """
-        Shows the top 5 most used commands for today.
+        Shows the command usage stats.
         """
-        top5 = zip(ctx.bot.command_usage.most_common(5),
-                   ["🥇", "🥈", "🥉", "🏅", "5\N{variation selector-16}\N{combining enclosing keycap}"])
-        embed = discord.Embed(title="Command Leaderboard", colour=ctx.bot.embed_colour)
-        embed.add_field(name="Most used commands", value="\n".join(
-            f"{ranking[1]} {ranking[0][0]} ({ranking[0][1]} use{'s' if ranking[0][1] > 1 else ''})" for ranking in top5)
-                                                         or "No commands have been used today.")
+        top5commands_today = ctx.bot.cache.command_stats["top_commands_today"].most_common(5)
+        top5commands_overall = ctx.bot.cache.command_stats["top_commands_overall"].most_common(5)
+        top5users_today = [(f"<@!{user_id}>", counter)
+                           for user_id, counter in ctx.bot.cache.command_stats["top_users_today"].most_common(5)]
+        top5users_overall = [(f"<@!{user_id}>", counter)
+                             for user_id, counter in ctx.bot.cache.command_stats["top_users_overall"].most_common(5)]
+
+        embed = discord.Embed(title="Command Stats", colour=ctx.bot.embed_colour)
+        embed.add_field(name="Top 5 Commands Today", value=top5(top5commands_today) or "No commands have been used today.")
+        embed.add_field(name="Top 5 Users Today", value=top5(top5users_today) or "No one has used any commands today.")
+        embed.add_field(name="\u200b", value="\u200b")
+        embed.add_field(name="Top 5 Commands Overall", value=top5(top5commands_overall) or "No commands have been used.")
+        embed.add_field(name="Top 5 Users Overall", value=top5(top5users_overall) or "No one has used any commands.")
+        embed.add_field(name="\u200b", value="\u200b")
+
         await ctx.send(embed=embed)
 
     @commands.command()
