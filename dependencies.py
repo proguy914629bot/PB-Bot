@@ -154,9 +154,9 @@ class PB_Bot(commands.Bot):
     async def refresh_command_usage(self):
         # dump
         yesterday = datetime.date.today() - datetime.timedelta(days=1)
-        await self.pool.execute("INSERT INTO command_usage VALUES ($1, $2, $3)",
-                                yesterday, dict(self.cache.command_stats["top_commands_today"]),
-                                dict(self.cache.command_stats["top_users_today"]))
+        top_commands_today = str(dict(self.cache.command_stats["top_commands_today"]))
+        top_users_today = str(dict(self.cache.command_stats["top_users_today"]))
+        await self.pool.execute("INSERT INTO command_stats VALUES ($1, $2, $3)", yesterday, top_commands_today, top_users_today)
 
         # clear
         self.cache.command_stats["top_commands_today"].clear()
