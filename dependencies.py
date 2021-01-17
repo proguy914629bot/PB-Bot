@@ -50,6 +50,8 @@ class PB_Bot(commands.Bot):
             owner_id=config["owner_id"],
             description="An easy to use, multipurpose discord bot written in Python by PB#4162."
         )
+        self._BotBase__cogs = commands.core._CaseInsensitiveDict()
+        
         self.start_time = datetime.datetime.now()
         self.session = aiohttp.ClientSession()
         self.wavelink = wavelink.Client(bot=self)
