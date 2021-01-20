@@ -239,18 +239,18 @@ class Info(commands.Cog):
     @commands.command(aliases=["rawmessage", "rawmsg"])
     async def raw_message(self, ctx, *, message: discord.Message = None):
         """
-        Get the raw message info for a message.
+        Get the raw info for a message.
 
         `message` - The message.
         """
         message = message or ctx.message
-        headers = {"Authorization": f"Bot {config['token']}"}
-        async with ctx.bot.session.get(f"https://discord.com/api/channels/{ctx.channel.id}/messages/{message.id}", headers=headers) as resp:
-            if resp.status >= 400:
-                return await ctx.send(f"Discord returned a `{resp.status}` status (error).")
-            r = await resp.json()
 
-        raw = json.dumps(r, indent=4)
+        try:
+            msg = await ctx.bot.http.get_message(ctx.channel.id, message.id)
+        except discord.NotFound:
+            return await ctx.send("Sorry, I couldn't find that message.")
+
+        raw = json.dumps(msg, indent=4)
         if len(raw) > 1991:
             return await ctx.send(f"Content was too long: {await ctx.bot.mystbin(raw)}")
         await ctx.send(f"```py\n{raw}```")
