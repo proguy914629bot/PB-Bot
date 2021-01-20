@@ -210,7 +210,7 @@ class Fun(commands.Cog):
             colour=ctx.bot.embed_colour)
         embed.set_author(name=random_post["subreddit_name_prefixed"])
         embed.set_image(url=random_post["url"])
-        embed.set_footer(text=f"{random_post['num_comments']} comment{'s' if random_post['num_comments'] > 1 else ''} • {random_post['upvote_ratio'] * 100}% upvote ratio")
+        embed.set_footer(text=f"{random_post['num_comments']} comment{'' if random_post['num_comments'] == 1 else 's'} • {random_post['upvote_ratio'] * 100}% upvote ratio")
 
         if random_post["over_18"]:
             cembed = discord.Embed(
