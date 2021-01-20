@@ -3,6 +3,9 @@ from discord.ext import commands, menus
 import humanize
 import datetime
 from collections import Counter
+import json
+
+from config import config
 
 
 class DiscordStatusSource(menus.ListPageSource):
@@ -232,6 +235,25 @@ class Info(commands.Cog):
             inline=False)
         embed.set_footer(text=f"Created {humanize.precisedelta(datetime.datetime.now() - member.created_at)} ago")
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=["rawmessage", "rawmsg"])
+    async def raw_message(self, ctx, *, message: discord.Message = None):
+        """
+        Get the raw message info for a message.
+
+        `message` - The message.
+        """
+        message = message or ctx.message
+        headers = {"Authorization": f"Bot {config['token']}"}
+        async with ctx.bot.session.get(f"https://discord.com/api/channels/{ctx.channel.id}/messages/{message.id}", headers=headers) as resp:
+            if resp.status >= 400:
+                return await ctx.send(f"Discord returned a `{resp.status}` status (error).")
+            r = await resp.json()
+
+        raw = json.dumps(r, indent=4)
+        if len(raw) > 1991:
+            return await ctx.send(f"Content was too long: {await ctx.bot.mystbin(raw)}")
+        await ctx.send(f"```py\n{raw}```")
 
 
 def setup(bot):
