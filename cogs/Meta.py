@@ -31,6 +31,8 @@ class Meta(commands.Cog):
 
         `text` - The text to paste to mystbin.
         """
+        if not text and not ctx.message.attachments:
+            return await ctx.send("No text or text file provided.")
         data = []
         if text:
             data.append(text)
@@ -57,6 +59,8 @@ class Meta(commands.Cog):
 
         `text` - The text to paste to hastebin.
         """
+        if not text and not ctx.message.attachments:
+            return await ctx.send("No text or text file provided.")
         data = []
         if text:
             data.append(text)
