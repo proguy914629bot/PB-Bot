@@ -251,9 +251,9 @@ class Info(commands.Cog):
             return await ctx.send("Sorry, I couldn't find that message.")
 
         raw = json.dumps(msg, indent=4)
-        if len(raw) > 1991:
+        if len(raw) > 1989:
             return await ctx.send(f"Content was too long: {await ctx.bot.mystbin(raw)}")
-        await ctx.send(f"```py\n{raw}```")
+        await ctx.send(f"```json\n{raw}```")
 
 
 def setup(bot):
