@@ -68,6 +68,7 @@ class PB_Bot(commands.Bot):
         self.github_url = "https://github.com/PB4162/PB-Bot"
         self.invite_url = discord.utils.oauth_url("719907834120110182", permissions=discord.Permissions(104189127))
         self.support_server_invite = "https://discord.gg/qQVDqXvmVt"
+        self.top_gg_url = "https://top.gg/bot/719907834120110182"
 
         self._cd = commands.CooldownMapping.from_cooldown(rate=5, per=5, type=commands.BucketType.user)
 
