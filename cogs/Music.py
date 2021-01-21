@@ -28,11 +28,19 @@ class Player(wavelink.Player):
         super().__init__(*args, **kwargs)
 
         self.now_playing = None
+        self.session_started = False
+        self.session_chan = None
 
         self.queue = []
         self.menus = []
         self.volume = 40
         self.queue_position = 0
+
+    async def start(self, ctx):
+        self.session_chan = ctx.channel
+        await ctx.invoke(ctx.bot.get_command("connect"))
+        self.session_started = True
+        await self.do_next()
 
     async def do_next(self):
         try:
@@ -300,10 +308,7 @@ class Music(commands.Cog):
     def __init__(self, bot):
         @property
         def get_player(ctx):
-            player = bot.wavelink.get_player(ctx.guild.id, cls=Player)
-            if not hasattr(player, "session_chan"):
-                player.session_chan = ctx.channel
-            return player
+            return bot.wavelink.get_player(ctx.guild.id, cls=Player)
 
         CustomContext.player = get_player
         self.bot = bot
@@ -392,21 +397,9 @@ class Music(commands.Cog):
     @songqueue.command()
     async def add(self, ctx, *, query: str):
         """
-        Adds a song to the queue.
-
-        `query` - The song to add to the queue.
+        Alias to `play`.
         """
-        query_results = await ctx.bot.wavelink.get_tracks(f"ytsearch:{query}")
-        if not query_results:
-            return await ctx.send(f"Could not find any songs with that query.")
-        track = Track(query_results[0].id, query_results[0].info, requester=ctx.author)
-        if len(ctx.player.queue) >= 100:
-            return await ctx.send("Sorry, only `100` songs can be in the queue at a time.")
-        ctx.player.queue.append(track)
-        await ctx.send(f"Added `{track}` to the queue. Queue length: `{len(ctx.player.queue)}`")
-        if ctx.player.queue_position == 0:
-            await ctx.invoke(self.connect)
-            await ctx.player.do_next()
+        await ctx.invoke(ctx.bot.get_command("play"), query=query)
 
     @songqueue.command()
     async def remove(self, ctx, *, query: str):
@@ -426,11 +419,29 @@ class Music(commands.Cog):
                     ctx.player.queue_position -= 1
         await ctx.send(f"Removed all songs with the name `{track}` from the queue. Queue length: `{len(ctx.player.queue)}`")
 
+    @commands.command()
+    async def play(self, ctx, *, query: str):
+        """
+        Adds a song to the queue.
+
+        `query` - The song to add to the queue.
+        """
+        query_results = await ctx.bot.wavelink.get_tracks(f"ytsearch:{query}")
+        if not query_results:
+            return await ctx.send(f"Could not find any songs with that query.")
+        track = Track(query_results[0].id, query_results[0].info, requester=ctx.author)
+        if len(ctx.player.queue) >= 100:
+            return await ctx.send("Sorry, only `100` songs can be in the queue at a time.")
+        ctx.player.queue.append(track)
+        await ctx.send(f"Added `{track}` to the queue. Queue length: `{len(ctx.player.queue)}`")
+        if not ctx.player.session_started:
+            await ctx.player.start(ctx)
+
     @is_playing()
     @commands.command()
-    async def play(self, ctx):
+    async def resume(self, ctx):
         """
-        Resumes the player. To add songs to the queue use the command `songqueue add` instead.
+        Resumes the player.
         """
         if not ctx.player.is_paused:
             return await ctx.send("I am already playing!")
