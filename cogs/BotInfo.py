@@ -236,6 +236,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
         embed = discord.Embed(title=f"Support Server Invite", url=ctx.bot.support_server_invite, colour=ctx.bot.embed_colour)
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def vote(self, ctx):
+        """
+        Displays my vote link.
+        """
+        embed = discord.Embed(title="Top.gg Page",  description="Remember to leave an honest review. :)",
+                              url=ctx.bot.top_gg_url, colour=ctx.bot.embed_colour)
+        await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(BotInfo())
