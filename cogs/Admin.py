@@ -166,7 +166,7 @@ class Admin(commands.Cog):
         errors = await ctx.bot.pool.fetch("SELECT * FROM errors")
         if not errors:
             return await ctx.send("No errors in the database! 🥳")
-        await menus.MenuPages(self.ErrorSource(errors, per_page=1)).start(ctx)
+        await menus.MenuPages(self.ErrorSource(errors, per_page=1), delete_message_after=True).start(ctx)
 
     @error.command()
     async def view(self, ctx, err_num: int):
