@@ -7,19 +7,10 @@ import os
 import re
 import asyncio
 from config import config
-import logging
-from logging.handlers import RotatingFileHandler
 import asyncpg
 import utils
 from collections import Counter
 import json
-
-
-logger = logging.getLogger("discord")
-logger.setLevel(logging.DEBUG)
-handler = RotatingFileHandler(filename=r'.\logs\discord.log', encoding='utf-8', mode='w',
-                              maxBytes=1_024 * 1_024 * 1_024)  # 1gb
-logger.addHandler(handler)
 
 
 async def get_prefix(bot, message: discord.Message):
