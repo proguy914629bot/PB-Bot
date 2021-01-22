@@ -15,7 +15,7 @@ class Admin(commands.Cog):
             raise commands.NotOwner
         return True
 
-    @commands.group(invoke_without_command=True, aliases=['adm', 'dev'])
+    @commands.group(invoke_without_command=True, aliases=['adm', 'dev', 'owner'])
     async def admin(self, ctx):
         """
         Admin commands.
