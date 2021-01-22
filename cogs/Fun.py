@@ -236,7 +236,7 @@ class Fun(commands.Cog):
         for i in reversed(range(1, 4)):
             await message.edit(embed=discord.Embed(description=str(i), colour=ctx.bot.embed_colour))
             await asyncio.sleep(1)
-        await asyncio.sleep(random.randint(1, 3))
+        await asyncio.sleep(random.randint(0, 3))  # for extra challenge :)
         await message.edit(embed=discord.Embed(description="Eat the cookie!", colour=ctx.bot.embed_colour))
         await message.add_reaction(reaction)
         start = time.perf_counter()
