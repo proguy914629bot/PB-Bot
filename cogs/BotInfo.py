@@ -55,9 +55,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Displays information about the bot.
         """
-        start = time.perf_counter()
-        await ctx.trigger_typing()
-        api_response_time = time.perf_counter() - start
+        api_response_time = await ctx.bot.api_ping(ctx)
         embed = discord.Embed(title="Bot Info", colour=ctx.bot.embed_colour)
         embed.set_thumbnail(url=ctx.bot.user.avatar_url)
         v = sys.version_info
