@@ -55,9 +55,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Displays information about the bot.
         """
-        start = time.perf_counter()
-        await ctx.trigger_typing()
-        api_response_time = time.perf_counter() - start
+        api_response_time = await ctx.bot.api_ping(ctx)
         embed = discord.Embed(title="Bot Info", colour=ctx.bot.embed_colour)
         embed.set_thumbnail(url=ctx.bot.user.avatar_url)
         v = sys.version_info
@@ -155,7 +153,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         if confirm:
             ctx.bot.cache.prefixes.pop(ctx.guild.id, None)
             await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
-            await ctx.send("Cleared the list of server prefixes.")
+            await ctx.send("Cleared the list of server prefixes. You can still mention me!")
 
     @commands.command()
     async def invite(self, ctx):
