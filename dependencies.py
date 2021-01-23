@@ -42,7 +42,7 @@ class PB_Bot(commands.Bot):
             description="An easy to use, multipurpose discord bot written in Python by PB#4162."
         )
         self._BotBase__cogs = commands.core._CaseInsensitiveDict()
-        
+
         self.start_time = datetime.datetime.now()
         self.session = aiohttp.ClientSession()
         self.wavelink = wavelink.Client(bot=self)
@@ -306,11 +306,13 @@ class CustomContext(commands.Context):
             prefix = f"{prefix.strip()} "
         return prefix
 
-    async def send(self, *args, **kwargs):
+    async def send(self, content = None, **kwargs):
+        if 'reply' in kwargs and not kwargs.pop('reply'):
+            return await super().send(content,**kwargs)
         try:
-            return await self.reply(*args, **kwargs, mention_author=False)
+            return await self.reply(content, **kwargs, mention_author=False)
         except discord.HTTPException:
-            return await super().send(*args, **kwargs)
+            return await super().send(content, **kwargs)
 
     async def quote(self, content=None, **kwargs):
         if content is None:
