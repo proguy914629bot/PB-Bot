@@ -153,7 +153,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         if confirm:
             ctx.bot.cache.prefixes.pop(ctx.guild.id, None)
             await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
-            await ctx.send("Cleared the list of server prefixes. You can still mention me or use `pb`!")
+            await ctx.send("Cleared the list of server prefixes.")
 
     @commands.command()
     async def invite(self, ctx):
