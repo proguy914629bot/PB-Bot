@@ -226,11 +226,11 @@ class PB_Bot(commands.Bot):
         super().run(*args, **kwargs)
 
     async def mystbin(self, data):
-        async with self.session.post('https://mystb.in/documents', data=data) as r:
+        async with self.session.post("https://mystb.in/documents", data=data) as r:
             return f"https://mystb.in/{(await r.json())['key']}"
 
     async def hastebin(self, data):
-        async with self.session.post('https://hastebin.com/documents', data=data) as r:
+        async with self.session.post("https://hastebin.com/documents", data=data) as r:
             return f"https://hastebin.com/{(await r.json())['key']}"
 
 
@@ -306,9 +306,9 @@ class CustomContext(commands.Context):
             prefix = f"{prefix.strip()} "
         return prefix
 
-    async def send(self, content = None, **kwargs):
-        if 'reply' in kwargs and not kwargs.pop('reply'):
-            return await super().send(content,**kwargs)
+    async def send(self, content=None, **kwargs):
+        if "reply" in kwargs and not kwargs.pop("reply"):
+            return await super().send(content, **kwargs)
         try:
             return await self.reply(content, **kwargs, mention_author=False)
         except discord.HTTPException:

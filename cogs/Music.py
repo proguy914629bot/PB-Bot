@@ -378,9 +378,7 @@ class Music(commands.Cog):
         """
         await PlayerMenu(delete_message_after=True).start(ctx)
 
-    @commands.group(
-        invoke_without_command=True,
-        aliases=["sq"]
+    @commands.group(invoke_without_command=True, aliases=["sq"]
     )
     async def songqueue(self, ctx, limit: int = None):
         """
@@ -520,9 +518,7 @@ class Music(commands.Cog):
         await ctx.send(f"Set the equalizer to `{equalizer}`.")
 
     @is_playing()
-    @commands.command(
-        aliases=["fastfwd"]
-    )
+    @commands.command(aliases=["fastfwd"])
     async def fastforward(self, ctx, seconds: int):
         """
         Fast forward `x` seconds into the current song.
@@ -545,9 +541,7 @@ class Music(commands.Cog):
         await ctx.player.seek(seek_position)
         await ctx.send(f"Rewinded `{seconds}` seconds. Current position: `{humanize.precisedelta(datetime.timedelta(milliseconds=seek_position))}`")
 
-    @commands.command(
-        aliases=["dc"]
-    )
+    @commands.command(aliases=["dc"])
     async def disconnect(self, ctx):
         """
         Disconnects the bot from the voice channel and stops the player.

@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands, menus
 import random
-from fuzzywuzzy import process
 import asyncio
 import time
 import humanize
@@ -38,8 +37,7 @@ class SnakeMenu(menus.Menu):
         return "\n".join(str(player) for player in players)
 
     async def refresh_embed(self):
-        self.embed = discord.Embed(title=f"Snake Game", description=self.game.show_grid(),
-                                   colour=self.ctx.bot.embed_colour)
+        self.embed = discord.Embed(title=f"Snake Game", description=self.game.show_grid(), colour=self.ctx.bot.embed_colour)
         self.embed.add_field(name="Players", value=await self.get_players())
         self.embed.add_field(name="Score", value=self.game.score)
         self.embed.add_field(name="Current Direction", value=self.direction)
@@ -91,6 +89,10 @@ class SnakeMenu(menus.Menu):
     async def on_stop(self, _):
         self.stop()
 
+    def stop(self):
+        self.task.cancel()
+        super().stop()
+
 
 class TicTacToe:
     """
@@ -103,9 +105,9 @@ class TicTacToe:
         self.player2 = player2
         self.ctx = ctx
         self.msg = None
-        self.board = {'↖️': "⬜", '⬆️': "⬜", '↗️': "⬜",
-                      '➡️': "⬜", '↘️': "⬜", '⬇️': "⬜",
-                      '↙️': "⬜", '⬅️': "⬜", '⏺️': "⬜"}
+        self.board = {"↖️": "⬜", "⬆️": "⬜", "↗️": "⬜",
+                      "➡️": "⬜", "↘️": "⬜", "⬇️": "⬜",
+                      "↙️": "⬜", "⬅️": "⬜", "⏺️": "⬜"}
         self.turn = random.choice([self.player1, self.player2])
         if self.turn == player1:
             self.player_mapping = {self.player1: "🇽", self.player2: "🅾️"}
@@ -147,14 +149,14 @@ class TicTacToe:
                 await self.msg.edit(content=f"{self.show_board()}**Current Turn**: `{self.turn}`\nThat place is already filled.")
                 continue
             condition = (
-                self.board['↖️'] == self.board['⬆️'] == self.board['↗️'] != '⬜',  # across the top
-                self.board['⬅️'] == self.board['⏺️'] == self.board['➡️'] != '⬜',  # across the middle
-                self.board['↙️'] == self.board['⬇️'] == self.board['↘️'] != '⬜',  # across the bottom
-                self.board['↖️'] == self.board['⬅️'] == self.board['↙️'] != '⬜',  # down the left side
-                self.board['⬆️'] == self.board['⏺️'] == self.board['⬇️'] != '⬜',  # down the middle
-                self.board['↗️'] == self.board['➡️'] == self.board['↘️'] != '⬜',  # down the right side
-                self.board['↖️'] == self.board['⏺️'] == self.board['↘️'] != '⬜',  # diagonal
-                self.board['↙️'] == self.board['⏺️'] == self.board['↗️'] != '⬜',  # diagonal
+                self.board["↖️"] == self.board["⬆️"] == self.board["↗️"] != "⬜",  # across the top
+                self.board["⬅️"] == self.board["⏺️"] == self.board["➡️"] != "⬜",  # across the middle
+                self.board["↙️"] == self.board["⬇️"] == self.board["↘️"] != "⬜",  # across the bottom
+                self.board["↖️"] == self.board["⬅️"] == self.board["↙️"] != "⬜",  # down the left side
+                self.board["⬆️"] == self.board["⏺️"] == self.board["⬇️"] != "⬜",  # down the middle
+                self.board["↗️"] == self.board["➡️"] == self.board["↘️"] != "⬜",  # down the right side
+                self.board["↖️"] == self.board["⏺️"] == self.board["↘️"] != "⬜",  # diagonal
+                self.board["↙️"] == self.board["⏺️"] == self.board["↗️"] != "⬜",  # diagonal
             )
             if any(condition):
                 await self.msg.edit(content=f"{self.show_board()}Game Over.\n**{self.turn}** won!")
@@ -190,7 +192,7 @@ class Fun(commands.Cog):
     @commands.command()
     async def reddit(self, ctx, *, subreddit):
         """
-        Gets a random post from a subreddit of your choice.
+        Gets a random post from a subreddit.
 
         `subreddit` - The subreddit.
         """
@@ -260,6 +262,14 @@ class Fun(commands.Cog):
         """
         Challenge someone to a game of tic-tac-toe!
 
+        **How to Play**
+        Each reaction corresponds to a place on the board:
+        ↖️⬆️↗️
+        ⬅️⏺️➡️
+        ↙️⬇️↘️
+
+        Simply click on a reaction to make your move.
+
         `player2` - The user to challenge.
         """
         if player2 == ctx.author:
@@ -290,6 +300,15 @@ class Fun(commands.Cog):
     async def snake(self, ctx, *args):
         """
         Play a game of snake by yourself or with others.
+
+        **How to Play**
+        Click on the reactions to control the game:
+
+        ⬆️ - Changes the snakes direction to `up`.
+        ⬇️ - Changes the snakes direction to `down`.
+        ⬅️ - Changes the snakes direction to `left`.
+        ➡️ - Changes the snakes direction to `right`.
+        ⏹️ - Ends the game.
 
         `args` - The users who can control the game. Set this to `--public` to allow anyone to control the game.
         """

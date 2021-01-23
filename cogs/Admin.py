@@ -15,18 +15,16 @@ class Admin(commands.Cog):
             raise commands.NotOwner
         return True
 
-    @commands.group(invoke_without_command=True, aliases=['adm', 'dev', 'owner'])
+    @commands.group(invoke_without_command=True, aliases=["adm", "dev", "owner"])
     async def admin(self, ctx):
         """
         Admin commands.
         """
 
-    @admin.command(
-        aliases=['terminate', 'stop']
-    )
+    @admin.command(aliases=["terminate", "stop"])
     async def shutdown(self, ctx):
         """
-        Terminates the bot.
+        Shuts down the bot.
         """
         confirm_embed = ctx.bot.utils.EmbedConfirm(discord.Embed(title="Are you sure?", colour=ctx.bot.embed_colour),
                                                    delete_message_after=False)
@@ -108,7 +106,7 @@ class Admin(commands.Cog):
                 finished_cogs.append(f"✅ `{cog}`")
             except Exception as e:
                 finished_cogs.append(f"❌ `{cog}`: {e}")
-        finished_cogs = '\n'.join(finished_cogs)
+        finished_cogs = "\n".join(finished_cogs)
         await ctx.send(f"**Finished Reloading Cogs**\n\n{finished_cogs}")
 
     @admin.command()

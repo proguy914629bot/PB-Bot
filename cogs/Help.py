@@ -100,7 +100,7 @@ class CustomHelpCommand(commands.HelpCommand):
                 can_run = self.context.bot.emoji_dict["red_tick"]
         except commands.CommandError:
             can_run = self.context.bot.emoji_dict["red_tick"]
-        embed.add_field(name="Are you able to use this command:", value=can_run)
+        embed.add_field(name="Can Use:", value=can_run)
         embed.add_field(name="Aliases:", value="\n".join(command.aliases) or "None", inline=False)
         embed.set_thumbnail(url=self.context.bot.user.avatar_url)
         embed.set_footer(
@@ -133,7 +133,7 @@ class CustomHelpCommand(commands.HelpCommand):
                 can_run = self.context.bot.emoji_dict["red_tick"]
         except commands.CommandError:
             can_run = self.context.bot.emoji_dict["red_tick"]
-        embed.add_field(name="Are you able to use this command:", value=can_run)
+        embed.add_field(name="Can Use:", value=can_run)
         embed.add_field(name="Aliases:", value="\n".join(group.aliases) or "None", inline=False)
         embed.add_field(name="Commands in this Group:", value="\n".join(str(command) for command in group.walk_commands()) or "None")
         embed.set_thumbnail(url=self.context.bot.user.avatar_url)

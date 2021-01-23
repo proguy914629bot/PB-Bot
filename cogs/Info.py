@@ -35,7 +35,7 @@ class Info(commands.Cog):
     @commands.command(aliases=["si", "gi", "server_info", "guild_info", "guildinfo"])
     async def serverinfo(self, ctx):
         """
-        Displays information about the current server.
+        Displays information about this server.
         """
         animated_emojis = list(filter(lambda emoji: emoji.animated, ctx.guild.emojis))
         not_animated_emojis = list(filter(lambda emoji: not emoji.animated, ctx.guild.emojis))
@@ -115,7 +115,7 @@ class Info(commands.Cog):
             if not summary["incidents"]:
                 embed2.description = "There are no issues with discord as of yet."
             else:
-                for incident in summary['incidents']:
+                for incident in summary["incidents"]:
                     embed2.add_field(
                         name=incident["name"],
                         value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
@@ -123,7 +123,7 @@ class Info(commands.Cog):
             # embed 3
             embed3 = discord.Embed(title="Discord Status\nComponent Overview", colour=ctx.bot.embed_colour)
             for component in summary["components"]:
-                if component['name'] in important_components:
+                if component["name"] in important_components:
                     embed3.add_field(
                         name=component["name"],
                         value=f"{component['description'] or 'No Description'}\n**Status**: `{component['status'].title()}`",

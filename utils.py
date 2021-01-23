@@ -185,8 +185,7 @@ def humanize_list(li: list):
         return li[0]
     if len(li) == 2:
         return " and ".join(li)
-    last_item = li.pop(-1)
-    return f"{', '.join(str(item) for item in li)} and {last_item}"
+    return f"{', '.join(str(item) for item in li[:-1])} and {li[-1]}"
 
 
 class SnakeGame:

@@ -3,7 +3,6 @@ import datetime
 from discord.ext import commands
 import humanize
 import psutil
-import time
 import sys
 import inspect
 from jishaku import Jishaku
@@ -21,12 +20,10 @@ class BotInfo(commands.Cog, name="Bot Info"):
     """
     Commands that display information about the bot.
     """
-    @commands.command(
-        aliases=["up"]
-    )
+    @commands.command(aliases=["up"])
     async def uptime(self, ctx):
         """
-        Displays how long the bot has been online for since last reboot.
+        Displays how long the bot has been online for since last restart.
         """
         uptime = datetime.datetime.now() - ctx.bot.start_time
         await ctx.send(f"Bot has been online for **`{humanize.precisedelta(uptime)}`**.")
@@ -34,7 +31,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
     @commands.command()
     async def ping(self, ctx, accuracy: int = 2):
         """
-        Displays the websocket latency and the api response time.
+        Displays the websocket latency, api response time and the database response time.
 
         `accuracy` - The amount of decimal places to show. Defaults to 2.
         """
@@ -56,6 +53,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         Displays information about the bot.
         """
         api_response_time = await ctx.bot.api_ping(ctx)
+        db_ping = await ctx.bot.db_ping()
         embed = discord.Embed(title="Bot Info", colour=ctx.bot.embed_colour)
         embed.set_thumbnail(url=ctx.bot.user.avatar_url)
         v = sys.version_info
@@ -65,9 +63,10 @@ class BotInfo(commands.Cog, name="Bot Info"):
             f"• Running discord.py version **{discord.__version__}** on python **{v.major}.{v.minor}.{v.micro}**\n"
             f"• This bot is not sharded and can see **{len(ctx.bot.guilds)}** servers and **{len(ctx.bot.users)}** users\n"
             f"• **{len(ctx.bot.cogs)}** cogs loaded and **{len(list(ctx.bot.walk_commands()))}** commands loaded\n"
-            f"• **Websocket latency:** `{ctx.bot.latency * 1000:.2f}ms`\n"
-            f"• **API response time:** `{api_response_time * 1000:.2f}ms`\n"
-            f"• **Uptime since last boot:** {humanize.precisedelta(datetime.datetime.now() - ctx.bot.start_time)}")
+            f"• **Websocket Latency:** `{ctx.bot.latency * 1000:.2f}ms`\n"
+            f"• **API Response Time:** `{api_response_time * 1000:.2f}ms`\n"
+            f"• **Database Response Time:** `{db_ping * 1000:.2f}ms`\n"
+            f"• **Uptime since last restart:** {humanize.precisedelta(datetime.datetime.now() - ctx.bot.start_time)}")
         p = psutil.Process()
         m = p.memory_full_info()
         embed.add_field(name="System",
@@ -102,7 +101,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         `prefix` - The prefix to add.
         """
         if len(prefix) > 100:
-            return await ctx.send("Sorry, that prefix is too long.")
+            return await ctx.send("Sorry, that prefix is too long (>100 characters).")
 
         prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
         if prefixes is None:  # don't need to do the checks if the guild has no prefixes
@@ -127,11 +126,11 @@ class BotInfo(commands.Cog, name="Bot Info"):
         `prefix` - The prefix to remove.
         """
         if len(prefix) > 100:
-            return await ctx.send("Sorry, that prefix is too long.")
+            return await ctx.send("Sorry, that prefix is too long (>100 characters).")
 
         prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
         if prefixes is None:
-            return await ctx.send("Sorry, you can't remove this server's only prefix.")
+            return await ctx.send("This server doesn't have any custom prefixes.")
         if prefix not in prefixes:
             return await ctx.send(f"Couldn't find `{prefix}` in the list of prefixes for this server.")
 
@@ -149,7 +148,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Clears the current server's prefix list. The `manage server` permission is required to use this command.
         """
-        confirm = await ctx.bot.utils.Confirm("Are you sure that you want to clear the prefix list for the current server?").prompt(ctx)
+        confirm = await ctx.bot.utils.Confirm("Are you sure that you want to clear the prefix list for this server?").prompt(ctx)
         if confirm:
             ctx.bot.cache.prefixes.pop(ctx.guild.id, None)
             await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
@@ -201,7 +200,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
     @commands.command()
     async def stats(self, ctx):
         """
-        Shows the command usage stats.
+        Displays the command usage stats.
         """
         top5commands_today = ctx.bot.cache.command_stats["top_commands_today"].most_common(5)
         top5commands_overall = ctx.bot.cache.command_stats["top_commands_overall"].most_common(5)

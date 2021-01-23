@@ -134,7 +134,7 @@ class Meta(commands.Cog):
         if not ctx.message.attachments:
             return await ctx.send("No attachment provided.")
         ocr_result = await ctx.bot.loop.run_in_executor(None, self._ocr, await ctx.message.attachments[0].read())
-        await ctx.send(f"Text to image result for **{ctx.author}**```{ocr_result}```")
+        await ctx.send(f"Text to image result for **{ctx.author}**\n```{ocr_result}```")
 
     @commands.command()
     async def ascii(self, ctx, *, text):

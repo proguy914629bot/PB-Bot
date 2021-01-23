@@ -20,9 +20,9 @@ class ErrorHandling(commands.Cog):
         If the local error handler handles the error correctly, the global error handler does nothing.
         If the local error handler does not handle the error correctly, then it goes to the global error handler.
         """
-        if hasattr(ctx.command, 'on_error') and not from_local:
+        if hasattr(ctx.command, "on_error") and not from_local:
             return
-        error = getattr(error, 'original', error)
+        error = getattr(error, "original", error)
 
         if isinstance(error, commands.CommandNotFound):
             failed_command = re.match(f"^({ctx.prefix})\s*(.*)", ctx.message.content, flags=re.IGNORECASE).group(2)
@@ -41,11 +41,11 @@ class ErrorHandling(commands.Cog):
             await ctx.send("This command can only be used in a server.")
 
         elif isinstance(error, commands.MissingPermissions):
-            perms = ctx.bot.utils.humanize_list(error.missing_perms).replace('_', ' ').replace('guild', 'server')
+            perms = ctx.bot.utils.humanize_list(error.missing_perms).replace("_", " ").replace("guild", "server")
             await ctx.send(f"You are missing the `{perms}` permission(s) to use this command.")
 
         elif isinstance(error, commands.BotMissingPermissions):
-            perms = ctx.bot.utils.humanize_list(error.missing_perms).replace('_', ' ').replace('guild', 'server')
+            perms = ctx.bot.utils.humanize_list(error.missing_perms).replace("_", " ").replace("guild", "server")
             await ctx.send(f"I am missing the `{perms}` permission(s) to use this command.")
 
         elif isinstance(error, StopSpammingMe):
@@ -70,7 +70,8 @@ class ErrorHandling(commands.Cog):
         elif isinstance(error, commands.MissingRequiredArgument):
             embed = discord.Embed(
                 title=f"`{str(error.param).split(':')[0]}` is a required argument that is missing.",
-                description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.", colour=ctx.bot.embed_colour)
+                description=f"For more information on what arguments this command requires, do `{ctx.clean_prefix}help {ctx.command}`.",
+                colour=ctx.bot.embed_colour)
             await ctx.send(embed=embed)
 
         elif isinstance(error, (commands.MessageNotFound, commands.ChannelNotFound, commands.MemberNotFound, commands.EmojiNotFound, commands.RoleNotFound, commands.UserNotFound)):
@@ -78,14 +79,15 @@ class ErrorHandling(commands.Cog):
 
         elif isinstance(error, commands.BadArgument):
             embed = discord.Embed(
-                title=str(error).replace("int", "integer"),
-                description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.", colour=ctx.bot.embed_colour)
+                title=str(error),
+                description=f"For more information on what arguments this command requires, do `{ctx.clean_prefix}help {ctx.command}`.",
+                colour=ctx.bot.embed_colour)
             await ctx.send(embed=embed)
 
         elif isinstance(error, commands.BadUnionArgument):
             embed = discord.Embed(
                 title=str(error),
-                description=f"Confused? Run the command `{ctx.clean_prefix}help {ctx.command}`.",
+                description=f"For more information on what arguments this command requires, do `{ctx.clean_prefix}help {ctx.command}`.",
                 colour=ctx.bot.embed_colour)
             await ctx.send(embed=embed)
 
@@ -101,7 +103,7 @@ class ErrorHandling(commands.Cog):
         else:
             # unexpected errors get handled here.
             tb_lines = traceback.format_exception(type(error), error, error.__traceback__)
-            tb = ''.join(tb_lines)
+            tb = "".join(tb_lines)
 
             if not ctx.guild:
                 guild_id = None
