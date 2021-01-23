@@ -244,8 +244,9 @@ class Meta(commands.Cog):
             return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Your todo list is empty.")
         # try with number
         try:
-            ctx.bot.cache.todos[ctx.author.id].pop(int(task) - 1)
-        except (TypeError, IndexError, ValueError):
+            task = ctx.bot.cache.todos[ctx.author.id][int(task) - 1]
+            ctx.bot.cache.todos[ctx.author.id].remove(task)
+        except (IndexError, ValueError):
             # try with name
             if task not in tasks:
                 return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Couldn't find a task with that name or number.")
