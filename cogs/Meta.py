@@ -202,12 +202,12 @@ class Meta(commands.Cog):
         """
         View the tasks in your todo list.
         """
-        entries = await ctx.bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id)
+        entries = ctx.bot.cache.todos.get(ctx.author.id, None)
         if entries is None:
             li = []
         else:
             li = [(number, item) for number, item in enumerate(entries, start=1)]
-        await menus.MenuPages(source=self.TODOSOURCE(li), delete_message_after=True).start(ctx)
+        await menus.MenuPages(self.TODOSOURCE(li), delete_message_after=True).start(ctx)
 
     @todo.command()
     async def add(self, ctx, *, task: str):
@@ -216,43 +216,46 @@ class Meta(commands.Cog):
 
         `task` - The task to add.
         """
-
         if len(task) > 100:
             return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Task is too long.")
-        tasks = await ctx.bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id)
+
+        tasks = ctx.bot.cache.todos.get(ctx.author.id, None)
         if tasks is None:
             await ctx.bot.pool.execute("INSERT INTO todos VALUES ($1)", ctx.author.id)
-            tasks = []
-        if len(tasks) >= 100:
-            return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Sorry, you can only have 100 tasks in your todo list at a time.")
-        if task in tasks:
-            return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} That task is already in your todo list.")
-        await ctx.bot.pool.execute("UPDATE todos SET tasks = array_append(tasks, $1) WHERE user_id = $2", task, ctx.author.id)
+            ctx.bot.cache.todos[ctx.author.id] = [task]
+        else:
+            if len(tasks) >= 100:
+                return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Sorry, you can only have 100 tasks in your todo list at a time.")
+            if task in tasks:
+                return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} That task is already in your todo list.")
+            ctx.bot.cache.todos[ctx.author.id].append(task)
+
         await ctx.send(f"{ctx.bot.emoji_dict['green_tick']} Added `{task}` to your todo list.")
 
     @todo.command()
-    async def remove(self, ctx, *, task: typing.Union[int, str]):
+    async def remove(self, ctx, *, task: str):
         """
         Remove a task from your todo list.
 
         `task` - The task to remove. Can be the task number or the task name.
         """
-        tasks = await ctx.bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id)
+        tasks = ctx.bot.cache.todos.get(ctx.author.id, None)
         if not tasks:
             return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Your todo list is empty.")
-        if isinstance(task, int):
-            try:
-                task = tasks.pop(task - 1)
-            except IndexError:
-                return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Couldn't find a task with that number.")
-            await ctx.bot.pool.execute("UPDATE todos SET tasks = $1 WHERE user_id = $2", tasks, ctx.author.id)
-        else:
+        # try with number
+        try:
+            ctx.bot.cache.todos[ctx.author.id].pop(int(task) - 1)
+        except (TypeError, IndexError, ValueError):
+            # try with name
             if task not in tasks:
-                return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Couldn't find a task with that name.")
-            await ctx.bot.pool.execute("UPDATE todos SET tasks = array_remove(tasks, $1) WHERE user_id = $2", task, ctx.author.id)
-        if not await ctx.bot.pool.fetchval("SELECT tasks FROM todos WHERE user_id = $1", ctx.author.id):
-            await ctx.bot.pool.execute("DELETE FROM todos WHERE user_id = $1", ctx.author.id)
+                return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Couldn't find a task with that name or number.")
+            ctx.bot.cache.todos[ctx.author.id].remove(task)
+
         await ctx.send(f"{ctx.bot.emoji_dict['green_tick']} Removed `{task}` from your todo list.")
+
+        if not ctx.bot.cache.todos[ctx.author.id]:
+            await ctx.bot.pool.execute("DELETE FROM todos WHERE user_id = $1", ctx.author.id)
+            ctx.bot.cache.todos.pop(ctx.author.id)
 
 
 def setup(bot):

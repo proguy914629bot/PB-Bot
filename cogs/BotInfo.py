@@ -107,19 +107,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
             return await ctx.send("Sorry, that prefix is too long.")
 
         prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
-        if prefixes is not None:  # will only do the checks if the guild has prefixes
+        if prefixes is None:  # don't need to do the checks if the guild has no prefixes
+            await ctx.bot.pool.execute("INSERT INTO prefixes VALUES ($1, $2)", ctx.guild.id, [prefix])
+            ctx.bot.cache.prefixes[ctx.guild.id] = [prefix]
+        else:
             if prefix in prefixes:
                 return await ctx.send(f"`{prefix}` is already a prefix for this server.")
             if len(prefixes) > 50:
                 return await ctx.send("This server already has 50 prefixes.")
-
-            await ctx.bot.pool.execute(
-                "UPDATE prefixes SET guild_prefixes = array_append(guild_prefixes, $1) WHERE guild_id = $2", prefix,
-                ctx.guild.id)
             ctx.bot.cache.prefixes[ctx.guild.id].append(prefix)
-        else:
-            await ctx.bot.pool.execute("INSERT INTO prefixes VALUES ($1, $2)", ctx.guild.id, [prefix])
-            ctx.bot.cache.prefixes[ctx.guild.id] = [prefix]
 
         await ctx.send(f"Added `{prefix}` to the list of server prefixes.")
 
@@ -138,12 +134,10 @@ class BotInfo(commands.Cog, name="Bot Info"):
         prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
         if prefixes is None:
             return await ctx.send("Sorry, you can't remove this server's only prefix.")
-
         if prefix not in prefixes:
             return await ctx.send(f"Couldn't find `{prefix}` in the list of prefixes for this server.")
 
         ctx.bot.cache.prefixes[ctx.guild.id].remove(prefix)
-        await ctx.bot.pool.execute("UPDATE prefixes SET guild_prefixes = array_remove(guild_prefixes, $1) WHERE guild_id = $2", prefix, ctx.guild.id)
         await ctx.send(f"Removed `{prefix}` from the list of server prefixes.")
 
         if not ctx.bot.cache.prefixes[ctx.guild.id]:

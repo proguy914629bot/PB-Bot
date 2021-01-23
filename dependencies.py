@@ -129,6 +129,13 @@ class PB_Bot(commands.Bot):
             await self.pool.fetch("SELECT * FROM information_schema.tables")
         return sw.elapsed
 
+    @tasks.loop(seconds=10)
+    async def update_db(self):
+        try:
+            await self.cache.dump_all()
+        finally:
+            self.dispatch("database_update")
+
     @tasks.loop(minutes=30)
     async def presence_update(self):
         await self.change_presence(
@@ -143,19 +150,24 @@ class PB_Bot(commands.Bot):
         await self.wait_until_ready()
 
     @tasks.loop(hours=24)
-    async def refresh_command_usage(self):
+    async def dump_command_stats(self):
+        self.update_db.stop()  # don't want any conflicts
+        await self.wait_for("database_update")  # wait for it to finish
         # dump
         yesterday = datetime.date.today() - datetime.timedelta(days=1)
-        top_commands_today = str(dict(self.cache.command_stats["top_commands_today"]))
-        top_users_today = str(dict(self.cache.command_stats["top_users_today"]))
-        await self.pool.execute("INSERT INTO command_stats VALUES ($1, $2, $3)", yesterday, top_commands_today, top_users_today)
+        commands_ = json.dumps(dict(self.cache.command_stats["top_commands_today"]))
+        users = json.dumps(dict(self.cache.command_stats["top_users_today"]))
+        await self.pool.execute("UPDATE command_stats SET commands = $1, users = $2 WHERE date = $3", commands_, users, yesterday)
 
         # clear
         self.cache.command_stats["top_commands_today"].clear()
         self.cache.command_stats["top_users_today"].clear()
 
-    @refresh_command_usage.before_loop
-    async def refresh_command_usage_before(self):
+        # starting back the loop
+        self.update_db.restart()
+
+    @dump_command_stats.before_loop
+    async def dump_command_stats_before(self):
         # wait until midnight to start the loop
         tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
         midnight = datetime.datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day)
@@ -166,16 +178,12 @@ class PB_Bot(commands.Bot):
         self.cache.command_stats["top_commands_today"].update({ctx.command.qualified_name: 1})
         self.cache.command_stats["top_commands_overall"].update({ctx.command.qualified_name: 1})
 
-        self.cache.command_stats["top_users_today"].update({ctx.author.id: 1})
-        self.cache.command_stats["top_users_overall"].update({ctx.author.id: 1})
+        self.cache.command_stats["top_users_today"].update({str(ctx.author.id): 1})
+        self.cache.command_stats["top_users_overall"].update({str(ctx.author.id): 1})
 
     async def close(self):
-        await self.cache.dump_command_stats()  # temporarily storing them
+        await self.cache.dump_all()
         await super().close()
-
-    # @tasks.loop(minutes=10)
-    # async def dump_prefixes_task(self):
-    #     await self.cache.dump_prefixes()
 
     async def schemas(self):
         with open("schemas.sql") as f:
@@ -186,8 +194,7 @@ class PB_Bot(commands.Bot):
             self.load_extension(cog)
 
         self.loop.run_until_complete(self.schemas())
-        self.loop.run_until_complete(self.cache.load_prefixes())
-        self.loop.run_until_complete(self.cache.load_command_stats())
+        self.loop.run_until_complete(self.cache.load_all())
 
         for command in self.commands:
             self.command_list.append(str(command))
@@ -205,7 +212,16 @@ class PB_Bot(commands.Bot):
                                     self.command_list.append(str(subcommand3))
                                     self.command_list.extend([f"{subcommand2} {subcommand3_alias}" for subcommand3_alias in subcommand3.aliases])
 
-        self.refresh_command_usage.start()
+        todays_row = self.loop.run_until_complete(
+            self.pool.fetchval("SELECT exists (SELECT 1 FROM command_stats WHERE date = $1)", datetime.date.today()))
+        if not todays_row:
+            commands_ = json.dumps(dict(self.cache.command_stats["top_commands_today"]))
+            users = json.dumps(dict(self.cache.command_stats["top_users_today"]))
+            self.loop.run_until_complete(
+                self.pool.execute("INSERT INTO command_stats VALUES ($1, $2, $3)", datetime.date.today(), commands_, users))
+
+        self.update_db.start()
+        self.dump_command_stats.start()
         self.presence_update.start()
         super().run(*args, **kwargs)
 
@@ -225,27 +241,58 @@ class Cache:
         self.prefixes = {}
         self.command_stats = {"top_commands_today": Counter(), "top_commands_overall": Counter(),
                               "top_users_today": Counter(), "top_users_overall": Counter()}
+        self.todos = {}
+
+    async def load_all(self):
+        await self.load_prefixes()
+        await self.load_command_stats()
+        await self.load_todos()
+
+    async def dump_all(self):
+        await self.dump_prefixes()
+        await self.dump_command_stats()
+        await self.dump_todos()
 
     async def load_prefixes(self):
         for entry in await self.bot.pool.fetch("SELECT * FROM prefixes"):
             self.prefixes[entry["guild_id"]] = entry["guild_prefixes"]
 
     async def dump_prefixes(self):
-        for guild_id, prefixes in self.prefixes.items():
+        prefixes = self.prefixes.copy().items()
+        for guild_id, prefixes in prefixes:
             await self.bot.pool.execute("UPDATE prefixes SET guild_prefixes = $1 WHERE guild_id = $2", prefixes, guild_id)
 
     async def load_command_stats(self):
-        if os.path.exists("temp.json"):
-            with open("temp.json") as f:
-                data = json.load(f)
-                self.command_stats["top_commands_today"].update(data["top_commands_today"])
-                self.command_stats["top_commands_overall"].update(data["top_commands_overall"])
-                self.command_stats["top_users_today"].update(data["top_users_today"])
-                self.command_stats["top_users_overall"].update(data["top_users_overall"])
+        # load todays stats
+        data = await self.bot.pool.fetch("SELECT * FROM command_stats WHERE date = $1", datetime.date.today())
+        if data:
+            data = data[0]
+            commands_ = json.loads(data["commands"])
+            users = json.loads(data["users"])
+            self.command_stats["top_commands_today"].update(commands_)
+            self.command_stats["top_users_today"].update(users)
+        # load overall stats
+        data = await self.bot.pool.fetch("SELECT * FROM command_stats")
+        for entry in data:
+            commands_ = json.loads(entry["commands"])
+            users = json.loads(entry["users"])
+            self.command_stats["top_commands_overall"].update(commands_)
+            self.command_stats["top_users_overall"].update(users)
 
     async def dump_command_stats(self):
-        with open("temp.json", "w") as f:
-            json.dump(self.command_stats, f)
+        commands_ = json.dumps(dict(self.command_stats["top_commands_today"]))
+        users = json.dumps(dict(self.command_stats["top_users_today"]))
+        await self.bot.pool.execute("UPDATE command_stats SET commands = $1, users = $2 WHERE date = $3", commands_, users, datetime.date.today())
+
+    async def load_todos(self):
+        data = await self.bot.pool.fetch("SELECT * FROM todos")
+        for entry in data:
+            self.todos[entry["user_id"]] = entry["tasks"]
+
+    async def dump_todos(self):
+        todos = self.todos.copy().items()
+        for user_id, tasks_ in todos:
+            await self.bot.pool.execute("UPDATE todos SET tasks = $1 WHERE user_id = $2", tasks_, user_id)
 
 
 class CustomContext(commands.Context):
