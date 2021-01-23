@@ -11,7 +11,7 @@ class Admin(commands.Cog):
     Commands that only my owner can use.
     """
     async def cog_check(self, ctx):
-        if ctx.bot.is_owner(ctx.author):
+        if not ctx.bot.is_owner(ctx.author):
             raise commands.NotOwner
         return True
 
