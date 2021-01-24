@@ -147,7 +147,7 @@ class Admin(commands.Cog):
         async def format_page(self, menu: menus.MenuPages, page):
             if isinstance(page, list):
                 page = page[0]
-            traceback = f"```py\n{page['traceback']}```" if len(page["traceback"]) < 2000 else await menu.ctx.bot.mystbin(page["traceback"])
+            traceback = f"```py\n{page['traceback']}```" if len(page["traceback"]) < 1991 else await menu.ctx.bot.mystbin(page["traceback"])
             embed = discord.Embed(title=f"Error Number {page['err_num']}", description=traceback)
             for k, v in list(page.items()):
                 if k in ("err_num", "traceback"):
