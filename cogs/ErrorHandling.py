@@ -105,16 +105,8 @@ class ErrorHandling(commands.Cog):
             tb_lines = traceback.format_exception(type(error), error, error.__traceback__)
             tb = "".join(tb_lines)
 
-            if not ctx.guild:
-                guild_id = None
-            else:
-                guild_id = ctx.guild.id
-
-            await ctx.bot.pool.execute("""INSERT INTO errors (
-            traceback, author, author_id, channel, channel_id, guild, guild_id, message, message_id, command
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)""",
-            tb, str(ctx.author), str(ctx.author.id), str(ctx.channel), str(ctx.channel.id), str(ctx.guild), str(guild_id),
-                                   ctx.message.content, str(ctx.message.id), ctx.command.name)
+            await ctx.bot.pool.execute("""INSERT INTO errors (traceback, message, command)
+            VALUES ($1, $2, $3)""", tb, ctx.message.content, ctx.command.qualified_name)
 
             embed = discord.Embed(
                 title=f"An unexpected error occurred in command `{ctx.command}`",
