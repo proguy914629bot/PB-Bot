@@ -6,14 +6,7 @@ CREATE TABLE IF NOT EXISTS todos (
 CREATE TABLE IF NOT EXISTS errors (
     err_num    SERIAL,
     traceback  text,
-    author     text,
-    author_id  text,
-    channel    text,
-    channel_id text,
-    guild      text,
-    guild_id   text,
     message    text,
-    message_id text,
     command    text
     );
 
