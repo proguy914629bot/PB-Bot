@@ -35,13 +35,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
 
         `accuracy` - The amount of decimal places to show. Defaults to 2.
         """
-        embed = discord.Embed(
-                title="Pong!",
-                description=
-                f"**Websocket Latency:** `{ctx.bot.latency * 1000:.{accuracy}f}ms`\n"
-                f"**API Response Time:** `{await ctx.bot.api_ping(ctx) * 1000:.{accuracy}f}ms`\n"
-                f"**Database Response Time:** `{await ctx.bot.db_ping() * 1000:.{accuracy}f}ms`",
-                colour=ctx.bot.embed_colour)
+        embed = discord.Embed(title="Pong!", colour=ctx.bot.embed_colour)
+        embed.add_field(name="Websocket Latency",
+                        value=f"```py\n{ctx.bot.latency * 1000:.{accuracy}f}ms```")
+        embed.add_field(name="API Response Time",
+                        value=f"```py\n{await ctx.bot.api_ping(ctx) * 1000:.{accuracy}f}ms```")
+        embed.add_field(name="Database Ping (postgresql)",
+                        value=f"```py\n{await ctx.bot.postgresql_ping() * 1000:.{accuracy}f}ms```")
+        embed.add_field(name="Database Ping (redis)",
+                        value=f"```py\n{await ctx.bot.redis_ping() * 1000:.{accuracy}f}ms```")
         try:
             await ctx.send(embed=embed)
         except (discord.errors.HTTPException, ValueError):
@@ -52,8 +54,6 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Displays information about the bot.
         """
-        api_response_time = await ctx.bot.api_ping(ctx)
-        db_ping = await ctx.bot.db_ping()
         embed = discord.Embed(title="Bot Info", colour=ctx.bot.embed_colour)
         embed.set_thumbnail(url=ctx.bot.user.avatar_url)
         v = sys.version_info
@@ -64,8 +64,9 @@ class BotInfo(commands.Cog, name="Bot Info"):
             f"• This bot is not sharded and can see **{len(ctx.bot.guilds)}** servers and **{len(ctx.bot.users)}** users\n"
             f"• **{len(ctx.bot.cogs)}** cogs loaded and **{len(list(ctx.bot.walk_commands()))}** commands loaded\n"
             f"• **Websocket Latency:** `{ctx.bot.latency * 1000:.2f}ms`\n"
-            f"• **API Response Time:** `{api_response_time * 1000:.2f}ms`\n"
-            f"• **Database Response Time:** `{db_ping * 1000:.2f}ms`\n"
+            f"• **API Response Time:** `{await ctx.bot.api_ping(ctx) * 1000:.2f}ms`\n"
+            f"• **Database Ping (postgresql):** `{await ctx.bot.postgresql_ping() * 1000:.2f}ms`\n"
+            f"• **Database Ping (redis):** `{await ctx.bot.redis_ping() * 1000:.2f}ms`\n"
             f"• **Uptime since last restart:** {humanize.precisedelta(datetime.datetime.now() - ctx.bot.start_time)}")
         p = psutil.Process()
         m = p.memory_full_info()
@@ -86,7 +87,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         if not ctx.guild:
             return await ctx.send("My prefix is always `pb` in direct messages. You can also mention me.")
-        prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, ["pb"])
+        prefixes = (await ctx.cache())["prefixes"] or ["pb"]
         if len(prefixes) == 1:
             return await ctx.send(f"My prefix for this server is `{prefixes[0]}`.")
         await ctx.send(f"My prefixes for this server are `{ctx.bot.utils.humanize_list(prefixes)}`.")
@@ -103,17 +104,14 @@ class BotInfo(commands.Cog, name="Bot Info"):
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long (>100 characters).")
 
-        prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
-        if prefixes is None:  # don't need to do the checks if the guild has no prefixes
-            await ctx.bot.pool.execute("INSERT INTO prefixes VALUES ($1, $2)", ctx.guild.id, [prefix])
-            ctx.bot.cache.prefixes[ctx.guild.id] = [prefix]
-        else:
-            if prefix in prefixes:
-                return await ctx.send(f"`{prefix}` is already a prefix for this server.")
-            if len(prefixes) > 50:
-                return await ctx.send("This server already has 50 prefixes.")
-            ctx.bot.cache.prefixes[ctx.guild.id].append(prefix)
+        prefixes = (await ctx.cache())["prefixes"]
 
+        if prefix in prefixes:
+            return await ctx.send(f"`{prefix}` is already a prefix for this server.")
+        if len(prefixes) > 50:
+            return await ctx.send("This server already has 50 prefixes.")
+
+        await ctx.bot.cache.add_prefix(ctx.guild.id, prefix)
         await ctx.send(f"Added `{prefix}` to the list of server prefixes.")
 
     @commands.guild_only()
@@ -128,18 +126,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
         if len(prefix) > 100:
             return await ctx.send("Sorry, that prefix is too long (>100 characters).")
 
-        prefixes = ctx.bot.cache.prefixes.get(ctx.guild.id, None)
-        if prefixes is None:
+        prefixes = (await ctx.cache())["prefixes"]
+
+        if not prefixes:
             return await ctx.send("This server doesn't have any custom prefixes.")
         if prefix not in prefixes:
             return await ctx.send(f"Couldn't find `{prefix}` in the list of prefixes for this server.")
 
-        ctx.bot.cache.prefixes[ctx.guild.id].remove(prefix)
+        await ctx.bot.cache.remove_prefix(ctx.guild.id, prefix)
         await ctx.send(f"Removed `{prefix}` from the list of server prefixes.")
-
-        if not ctx.bot.cache.prefixes[ctx.guild.id]:
-            ctx.bot.cache.prefixes.pop(ctx.guild.id)
-            await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
 
     @commands.guild_only()
     @commands.has_guild_permissions(manage_guild=True)
@@ -150,8 +145,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         confirm = await ctx.bot.utils.Confirm("Are you sure that you want to clear the prefix list for this server?").prompt(ctx)
         if confirm:
-            ctx.bot.cache.prefixes.pop(ctx.guild.id, None)
-            await ctx.bot.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", ctx.guild.id)
+            await ctx.bot.cache.clear_prefixes(ctx.guild.id)
             await ctx.send("Cleared the list of server prefixes.")
 
     @commands.command()

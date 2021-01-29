@@ -202,11 +202,8 @@ class Meta(commands.Cog):
         """
         View the tasks in your todo list.
         """
-        entries = ctx.bot.cache.todos.get(ctx.author.id, None)
-        if entries is None:
-            li = []
-        else:
-            li = [(number, item) for number, item in enumerate(entries, start=1)]
+        entries = await ctx.bot.cache.get_todo(ctx.author.id)
+        li = [(number, item) for number, item in enumerate(entries, start=1)]
         await menus.MenuPages(self.TODOSOURCE(li), delete_message_after=True).start(ctx)
 
     @todo.command()
@@ -219,17 +216,14 @@ class Meta(commands.Cog):
         if len(task) > 100:
             return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Task is too long.")
 
-        tasks = ctx.bot.cache.todos.get(ctx.author.id, None)
-        if tasks is None:
-            await ctx.bot.pool.execute("INSERT INTO todos VALUES ($1)", ctx.author.id)
-            ctx.bot.cache.todos[ctx.author.id] = [task]
-        else:
-            if len(tasks) >= 100:
-                return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Sorry, you can only have 100 tasks in your todo list at a time.")
-            if task in tasks:
-                return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} That task is already in your todo list.")
-            ctx.bot.cache.todos[ctx.author.id].append(task)
+        tasks = await ctx.bot.cache.get_todo(ctx.author.id)
 
+        if len(tasks) >= 100:
+            return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Sorry, you can only have 100 tasks in your todo list at a time.")
+        if task in tasks:
+            return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} That task is already in your todo list.")
+
+        await ctx.bot.cache.add_todo(ctx.author.id, task)
         await ctx.send(f"{ctx.bot.emoji_dict['green_tick']} Added `{task}` to your todo list.")
 
     @todo.command()
@@ -239,24 +233,21 @@ class Meta(commands.Cog):
 
         `task` - The task to remove. Can be the task number or the task name.
         """
-        tasks = ctx.bot.cache.todos.get(ctx.author.id, None)
+        tasks = await ctx.bot.cache.get_todo(ctx.author.id)
+
         if not tasks:
             return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Your todo list is empty.")
         # try with number
         try:
-            task = ctx.bot.cache.todos[ctx.author.id][int(task) - 1]
-            ctx.bot.cache.todos[ctx.author.id].remove(task)
+            task = tasks[int(task) - 1]
+            await ctx.bot.cache.remove_todo(ctx.author.id, task)
         except (IndexError, ValueError):
             # try with name
             if task not in tasks:
                 return await ctx.send(f"{ctx.bot.emoji_dict['red_tick']} Couldn't find a task with that name or number.")
-            ctx.bot.cache.todos[ctx.author.id].remove(task)
+            await ctx.bot.cache.remove_todo(ctx.author.id, task)
 
         await ctx.send(f"{ctx.bot.emoji_dict['green_tick']} Removed `{task}` from your todo list.")
-
-        if not ctx.bot.cache.todos[ctx.author.id]:
-            await ctx.bot.pool.execute("DELETE FROM todos WHERE user_id = $1", ctx.author.id)
-            ctx.bot.cache.todos.pop(ctx.author.id)
 
 
 def setup(bot):

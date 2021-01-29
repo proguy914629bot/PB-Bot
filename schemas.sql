@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS errors (
     command    text
     );
 
-CREATE TABLE IF NOT EXISTS prefixes (
+CREATE TABLE IF NOT EXISTS guild_info (
     guild_id bigint PRIMARY KEY,
-    guild_prefixes text[]
+    prefixes text[] DEFAULT '{}'
     );
 
 CREATE TABLE IF NOT EXISTS command_stats (

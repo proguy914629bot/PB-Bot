@@ -11,16 +11,23 @@ import asyncpg
 import utils
 from collections import Counter
 import json
+import aioredis
+from copy import deepcopy
+
+EMPTY_GUILD_CACHE = {"prefixes": []}
+EMPTY_TODO = []
 
 
 async def get_prefix(bot, message: discord.Message):
     """
-    get_prefix function.
+    Get prefix function.
     """
     if not message.guild:
-        prefixes = ['pb']
+        prefixes = ["pb"]
     else:
-        prefixes = bot.cache.prefixes.get(message.guild.id, ['pb'])
+        prefixes = (await bot.cache.get_guild_info(message.guild.id))["prefixes"]
+        if not prefixes:  # couldn't find it or no prefixes
+            prefixes = ["pb"]
     for prefix in prefixes:
         match = re.match(f"^({prefix}\s*).*", message.content, flags=re.IGNORECASE)
         if match:
@@ -48,7 +55,8 @@ class PB_Bot(commands.Bot):
         self.wavelink = wavelink.Client(bot=self)
         self.coglist = [f"cogs.{item[:-3]}" for item in os.listdir("cogs") if item != "__pycache__"] + ["jishaku"]
 
-        self.pool = asyncio.get_event_loop().run_until_complete(asyncpg.create_pool(**config["database"]))
+        self.pool = asyncio.get_event_loop().run_until_complete(asyncpg.create_pool(**config["postgresql"]))
+        self.redis = asyncio.get_event_loop().run_until_complete(aioredis.create_redis_pool(config["redis"]))
 
         self.utils = utils
         self.command_list = []
@@ -108,8 +116,7 @@ class PB_Bot(commands.Bot):
         await self.process_commands(message)
 
     async def on_guild_leave(self, guild: discord.Guild):
-        await self.pool.execute("DELETE FROM prefixes WHERE guild_id = $1", guild.id)
-        self.cache.prefixes.pop(guild.id, None)
+        await self.cache.delete_guild_info(guild.id)
 
     def beta_command(self):
         async def predicate(ctx):
@@ -124,17 +131,15 @@ class PB_Bot(commands.Bot):
             await ctx.trigger_typing()
         return sw.elapsed
 
-    async def db_ping(self):
+    async def postgresql_ping(self):
         with self.utils.StopWatch() as sw:
             await self.pool.fetch("SELECT * FROM information_schema.tables")
         return sw.elapsed
 
-    @tasks.loop(seconds=10)
-    async def update_db(self):
-        try:
-            await self.cache.dump_all()
-        finally:
-            self.dispatch("database_update")
+    async def redis_ping(self):
+        with self.utils.StopWatch() as sw:
+            await self.redis.ping()
+        return sw.elapsed
 
     @tasks.loop(minutes=30)
     async def presence_update(self):
@@ -150,29 +155,20 @@ class PB_Bot(commands.Bot):
         await self.wait_until_ready()
 
     @tasks.loop(hours=24)
-    async def dump_command_stats(self):
-        self.update_db.stop()  # don't want any conflicts
-        await self.wait_for("database_update")  # wait for it to finish
-        # dump
-        yesterday = datetime.date.today() - datetime.timedelta(days=1)
-        commands_ = json.dumps(dict(self.cache.command_stats["top_commands_today"]))
-        users = json.dumps(dict(self.cache.command_stats["top_users_today"]))
-        await self.pool.execute("UPDATE command_stats SET commands = $1, users = $2 WHERE date = $3", commands_, users, yesterday)
+    async def clear_cmd_stats(self):
+        await self.cache.clear_cmd_stats()
 
-        # clear
-        self.cache.command_stats["top_commands_today"].clear()
-        self.cache.command_stats["top_users_today"].clear()
-
-        # starting back the loop
-        self.update_db.restart()
-
-    @dump_command_stats.before_loop
-    async def dump_command_stats_before(self):
+    @clear_cmd_stats.before_loop
+    async def clear_command_stats_before(self):
         # wait until midnight to start the loop
         tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
         midnight = datetime.datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day)
         dt = midnight - datetime.datetime.now()
         await asyncio.sleep(dt.total_seconds())
+
+    @tasks.loop(minutes=5)
+    async def dump_cmd_stats(self):
+        await self.cache.dump_cmd_stats()
 
     async def on_command(self, ctx):
         self.cache.command_stats["top_commands_today"].update({ctx.command.qualified_name: 1})
@@ -212,17 +208,9 @@ class PB_Bot(commands.Bot):
                                     self.command_list.append(str(subcommand3))
                                     self.command_list.extend([f"{subcommand2} {subcommand3_alias}" for subcommand3_alias in subcommand3.aliases])
 
-        todays_row = self.loop.run_until_complete(
-            self.pool.fetchval("SELECT exists (SELECT 1 FROM command_stats WHERE date = $1)", datetime.date.today()))
-        if not todays_row:
-            commands_ = json.dumps(dict(self.cache.command_stats["top_commands_today"]))
-            users = json.dumps(dict(self.cache.command_stats["top_users_today"]))
-            self.loop.run_until_complete(
-                self.pool.execute("INSERT INTO command_stats VALUES ($1, $2, $3)", datetime.date.today(), commands_, users))
-
-        self.update_db.start()
-        self.dump_command_stats.start()
         self.presence_update.start()
+        self.dump_cmd_stats.start()
+        self.clear_cmd_stats.start()
         super().run(*args, **kwargs)
 
     async def mystbin(self, data):
@@ -238,51 +226,108 @@ class Cache:
     def __init__(self, bot: PB_Bot):
         self.bot = bot
 
-        self.prefixes = {}
+        self.guild_cache = {}
         self.command_stats = {"top_commands_today": Counter(), "top_commands_overall": Counter(),
                               "top_users_today": Counter(), "top_users_overall": Counter()}
         self.todos = {}
 
     async def load_all(self):
-        await self.load_prefixes()
-        await self.load_command_stats()
+        await self.load_guild_info()
+        await self.load_cmd_stats()
         await self.load_todos()
 
     async def dump_all(self):
-        await self.dump_prefixes()
-        await self.dump_command_stats()
+        await self.dump_guild_info()
+        await self.dump_cmd_stats()
         await self.dump_todos()
 
-    async def load_prefixes(self):
-        for entry in await self.bot.pool.fetch("SELECT * FROM prefixes"):
-            self.prefixes[entry["guild_id"]] = entry["guild_prefixes"]
+    # guild info
 
-    async def dump_prefixes(self):
-        prefixes = self.prefixes.copy().items()
-        for guild_id, prefixes in prefixes:
-            await self.bot.pool.execute("UPDATE prefixes SET guild_prefixes = $1 WHERE guild_id = $2", prefixes, guild_id)
-
-    async def load_command_stats(self):
-        # load todays stats
-        data = await self.bot.pool.fetch("SELECT * FROM command_stats WHERE date = $1", datetime.date.today())
-        if data:
-            data = data[0]
-            commands_ = json.loads(data["commands"])
-            users = json.loads(data["users"])
-            self.command_stats["top_commands_today"].update(commands_)
-            self.command_stats["top_users_today"].update(users)
-        # load overall stats
-        data = await self.bot.pool.fetch("SELECT * FROM command_stats")
+    async def load_guild_info(self):
+        data = await self.bot.pool.fetch("SELECT * FROM guild_info")
         for entry in data:
-            commands_ = json.loads(entry["commands"])
-            users = json.loads(entry["users"])
-            self.command_stats["top_commands_overall"].update(commands_)
-            self.command_stats["top_users_overall"].update(users)
+            self.guild_cache[entry["guild_id"]] = {k: v for k, v in list(entry.items())[1:]}  # skip the guild_id
 
-    async def dump_command_stats(self):
-        commands_ = json.dumps(dict(self.command_stats["top_commands_today"]))
+    async def dump_guild_info(self):
+        items = deepcopy(self.guild_cache).items()
+        for guild_id, data in items:
+            await self.bot.pool.execute("UPDATE guild_info SET prefixes = $1 WHERE guild_id = $2", data["prefixes"], guild_id)
+            # idk how to make this dynamic
+
+    async def create_guild_info(self, guild_id):
+        await self.bot.pool.execute("INSERT INTO guild_info VALUES ($1)", guild_id)
+        self.guild_cache[guild_id] = deepcopy(EMPTY_GUILD_CACHE)
+        return self.guild_cache[guild_id]
+
+    async def delete_guild_info(self, guild_id):
+        await self.bot.pool.execute("DELETE FROM guild_info WHERE guild_id = $1", guild_id)
+        self.guild_cache.pop(guild_id, None)
+
+    async def get_guild_info(self, guild_id):
+        info = self.guild_cache.get(guild_id, None)
+        if info is None:
+            return await self.create_guild_info(guild_id)
+        return info
+
+    async def cleanup_guild_info(self, guild_id):
+        cache = await self.get_guild_info(guild_id)
+        if cache == EMPTY_GUILD_CACHE:
+            await self.delete_guild_info(guild_id)
+
+    async def add_prefix(self, guild_id, prefix):
+        await self.bot.pool.execute("UPDATE guild_info SET prefixes = array_append(prefixes, $1) WHERE guild_id = $2", prefix, guild_id)
+        (await self.get_guild_info(guild_id))["prefixes"].append(prefix)
+
+    async def remove_prefix(self, guild_id, prefix):
+        await self.bot.pool.execute("UPDATE guild_info SET prefixes = array_remove(prefixes, $1) WHERE guild_id = $2", prefix, guild_id)
+        (await self.get_guild_info(guild_id))["prefixes"].remove(prefix)
+
+        await self.cleanup_guild_info(guild_id)
+
+    async def clear_prefixes(self, guild_id):
+        await self.bot.pool.execute("UPDATE guild_info SET prefixes = '{}' WHERE guild_id = $1", guild_id)
+        (await self.get_guild_info(guild_id))["prefixes"].clear()
+
+        await self.cleanup_guild_info(guild_id)
+
+    # command stats
+
+    async def load_cmd_stats(self):
+        top_cmds_today = await self.bot.redis.hgetall("top_commands_today", encoding="utf-8")
+        top_users_today = await self.bot.redis.hgetall("top_users_today", encoding="utf-8")
+        top_cmds_overall = await self.bot.redis.hgetall("top_commands_overall", encoding="utf-8")
+        top_users_overall = await self.bot.redis.hgetall("top_users_overall", encoding="utf-8")
+        self.command_stats["top_commands_today"].update({k: int(v)} for k, v in top_cmds_today.items())
+        self.command_stats["top_users_today"].update({k: int(v)} for k, v in top_users_today.items())
+        self.command_stats["top_commands_overall"].update({k: int(v)} for k, v in top_cmds_overall.items())
+        self.command_stats["top_users_overall"].update({k: int(v)} for k, v in top_users_overall.items())
+
+    async def dump_cmd_stats(self):
+        top_cmds_today = dict(self.command_stats["top_commands_today"])
+        top_users_today = dict(self.command_stats["top_users_today"])
+        top_cmds_overall = dict(self.command_stats["top_commands_overall"])
+        top_users_overall = dict(self.command_stats["top_users_overall"])
+        if top_cmds_today:  # will error if it's empty
+            await self.bot.redis.hmset_dict("top_commands_today", top_cmds_today)
+        if top_users_today:
+            await self.bot.redis.hmset_dict("top_users_today", top_users_today)
+        if top_cmds_overall:
+            await self.bot.redis.hmset_dict("top_commands_overall", top_cmds_overall)
+        if top_users_overall:
+            await self.bot.redis.hmset_dict("top_users_overall", top_users_overall)
+
+    async def clear_cmd_stats(self):
+        # dump
+        yesterday = datetime.date.today() - datetime.timedelta(days=1)
+        cmds = json.dumps(dict(self.command_stats["top_commands_today"]))
         users = json.dumps(dict(self.command_stats["top_users_today"]))
-        await self.bot.pool.execute("UPDATE command_stats SET commands = $1, users = $2 WHERE date = $3", commands_, users, datetime.date.today())
+        await self.bot.pool.execute("INSERT INTO command_stats VALUES ($1, $2, $3)", yesterday, cmds, users)
+
+        # clear
+        self.command_stats["top_commands_today"].clear()
+        self.command_stats["top_users_today"].clear()
+
+    # todos
 
     async def load_todos(self):
         data = await self.bot.pool.fetch("SELECT * FROM todos")
@@ -290,9 +335,45 @@ class Cache:
             self.todos[entry["user_id"]] = entry["tasks"]
 
     async def dump_todos(self):
-        todos = self.todos.copy().items()
-        for user_id, tasks_ in todos:
+        items = deepcopy(self.todos).items()
+        for user_id, tasks_ in items:
             await self.bot.pool.execute("UPDATE todos SET tasks = $1 WHERE user_id = $2", tasks_, user_id)
+
+    async def create_todo(self, user_id):
+        await self.bot.pool.execute("INSERT INTO todos VALUES ($1)", user_id)
+        self.todos[user_id] = deepcopy(EMPTY_TODO)
+        return self.todos[user_id]
+
+    async def delete_todo(self, user_id):
+        await self.bot.pool.execute("DELETE FROM todos WHERE user_id = $1", user_id)
+        self.todos.pop(user_id)
+
+    async def get_todo(self, user_id):
+        todo = self.todos.get(user_id, None)
+        if todo is None:
+            return await self.create_todo(user_id)
+        return todo
+
+    async def cleanup_todo(self, user_id):
+        todo = await self.get_todo(user_id)
+        if todo == EMPTY_TODO:
+            await self.delete_todo(user_id)
+
+    async def add_todo(self, user_id, task):
+        await self.bot.pool.execute("UPDATE todos SET tasks = array_append(tasks, $1) WHERE user_id = $2", task, user_id)
+        (await self.get_todo(user_id)).append(task)
+
+    async def remove_todo(self, user_id, task):
+        await self.bot.pool.execute("UPDATE todos SET tasks = array_remove(tasks, $1) WHERE user_id = $2", task, user_id)
+        (await self.get_todo(user_id)).remove(task)
+
+        await self.cleanup_todo(user_id)
+
+    async def clear_todos(self, user_id):
+        await self.bot.pool.execute("UPDATE todos SET tasks = '{}' WHERE user_id = $1", user_id)
+        (await self.get_todo(user_id)).clear()
+
+        await self.cleanup_todo(user_id)
 
 
 class CustomContext(commands.Context):
@@ -323,6 +404,9 @@ class CustomContext(commands.Context):
         quote = "\n".join(f"> {string}" for string in self.message.content.split("\n"))
         quote_msg = f"{quote}\n{mention_author}{content}"
         return await super().send(quote_msg, **kwargs)
+
+    async def cache(self):
+        return await self.bot.cache.get_guild_info(self.guild.id)
 
 
 class StopSpammingMe(commands.CheckFailure):
