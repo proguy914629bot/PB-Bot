@@ -297,14 +297,10 @@ class Cache:
         top_users_today = await self.bot.redis.hgetall("top_users_today", encoding="utf-8")
         top_cmds_overall = await self.bot.redis.hgetall("top_commands_overall", encoding="utf-8")
         top_users_overall = await self.bot.redis.hgetall("top_users_overall", encoding="utf-8")
-        if top_cmds_today:  # will error if it's empty
-            self.command_stats["top_commands_today"].update({k: int(v)} for k, v in top_cmds_today.items())
-        if top_users_today:
-            self.command_stats["top_users_today"].update({k: int(v)} for k, v in top_users_today.items())
-        if top_cmds_overall:
-            self.command_stats["top_commands_overall"].update({k: int(v)} for k, v in top_cmds_overall.items())
-        if top_users_overall:
-            self.command_stats["top_users_overall"].update({k: int(v)} for k, v in top_users_overall.items())
+        self.command_stats["top_commands_today"].update({k: int(v) for k, v in top_cmds_today.items()})
+        self.command_stats["top_users_today"].update({k: int(v) for k, v in top_users_today.items()})
+        self.command_stats["top_commands_overall"].update({k: int(v) for k, v in top_cmds_overall.items()})
+        self.command_stats["top_users_overall"].update({k: int(v) for k, v in top_users_overall.items()})
 
     async def dump_cmd_stats(self):
         top_cmds_today = dict(self.command_stats["top_commands_today"])
