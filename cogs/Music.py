@@ -185,7 +185,7 @@ class VolumeMenu(menus.Menu):
 
     def build_embed(self):
         volume_bar_number = int(self.ctx.player.volume / 100 * 2)
-        volume_bar = [(volume_bar_number - 1) * '🟦'] + [self.ctx.bot.emoji_dict["blue_button"]] + [(20 - volume_bar_number) * '⬜']
+        volume_bar = [(volume_bar_number - 1) * "🟦"] + [self.ctx.bot.emoji_dict["blue_button"]] + [(20 - volume_bar_number) * "⬜"]
         self.embed = discord.Embed(title="Volume Bar", description="".join(volume_bar), colour=self.ctx.bot.embed_colour)
         self.embed.set_footer(text=f"Current Volume: {self.ctx.player.volume}")
 
@@ -378,8 +378,7 @@ class Music(commands.Cog):
         """
         await PlayerMenu(delete_message_after=True).start(ctx)
 
-    @commands.group(invoke_without_command=True, aliases=["sq"]
-    )
+    @commands.group(invoke_without_command=True, aliases=["sq"])
     async def songqueue(self, ctx, limit: int = None):
         """
         View the songqueue.
