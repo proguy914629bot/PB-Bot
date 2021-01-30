@@ -133,7 +133,7 @@ class PB_Bot(commands.Bot):
 
     async def postgresql_ping(self):
         with self.utils.StopWatch() as sw:
-            await self.pool.fetch("SELECT * FROM information_schema.tables")
+            await self.pool.fetch("SELECT 1")
         return sw.elapsed
 
     async def redis_ping(self):
