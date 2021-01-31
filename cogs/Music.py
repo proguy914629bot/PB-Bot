@@ -423,14 +423,23 @@ class Music(commands.Cog):
 
         `query` - The song to add to the queue.
         """
+        if len(ctx.player.queue) >= 100:
+            return await ctx.send("Sorry, only `100` songs can be in the queue at a time.")
+
         query_results = await ctx.bot.wavelink.get_tracks(f"ytsearch:{query}")
         if not query_results:
             return await ctx.send(f"Could not find any songs with that query.")
-        track = Track(query_results[0].id, query_results[0].info, requester=ctx.author)
-        if len(ctx.player.queue) >= 100:
-            return await ctx.send("Sorry, only `100` songs can be in the queue at a time.")
-        ctx.player.queue.append(track)
-        await ctx.send(f"Added `{track}` to the queue. Queue length: `{len(ctx.player.queue)}`")
+
+        if isinstance(query_results, wavelink.TrackPlaylist):
+            for track in query_results.tracks:
+                track = Track(track.id, track.info, requester=ctx.author)
+                ctx.player.queue.append(track)
+            await ctx.send(f"Added playlist `{query_results.data['playlistInfo']['name']}` with `{len(query_results.tracks)}` songs to the queue. Queue length: `{len(ctx.player.queue)}`")
+        else:
+            track = Track(query_results[0].id, query_results[0].info, requester=ctx.author)
+            ctx.player.queue.append(track)
+            await ctx.send(f"Added `{track}` to the queue. Queue length: `{len(ctx.player.queue)}`")
+
         if not ctx.player.session_started:
             await ctx.player.start(ctx)
 
