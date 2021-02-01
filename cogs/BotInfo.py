@@ -6,6 +6,7 @@ import psutil
 import sys
 import inspect
 from jishaku import Jishaku
+import argparse
 
 
 def top5(items: list):
@@ -28,26 +29,34 @@ class BotInfo(commands.Cog, name="Bot Info"):
         uptime = datetime.datetime.now() - ctx.bot.start_time
         await ctx.send(f"Bot has been online for **`{humanize.precisedelta(uptime)}`**.")
 
-    @commands.command()
-    async def ping(self, ctx, accuracy: int = 2):
+    @commands.command(usage="[-rtt|--round-trip-time]")
+    async def ping(self, ctx, *flags):
         """
         Displays the websocket latency, api response time and the database response time.
 
-        `accuracy` - The amount of decimal places to show. Defaults to 2.
+        **Flags:**
+        `-rtt|--round-trip-time` - If this flag is provided, round-trip time will also be displayed.
         """
+        decimal_places = 5
+
         embed = discord.Embed(title="Pong!", colour=ctx.bot.embed_colour)
         embed.add_field(name="Websocket Latency",
-                        value=f"```py\n{ctx.bot.latency * 1000:.{accuracy}f}ms```")
+                        value=f"```py\n{ctx.bot.latency * 1000:.{decimal_places}f}ms```")
         embed.add_field(name="API Response Time",
-                        value=f"```py\n{await ctx.bot.api_ping(ctx) * 1000:.{accuracy}f}ms```")
+                        value=f"```py\n{await ctx.bot.api_ping(ctx) * 1000:.{decimal_places}f}ms```")
         embed.add_field(name="Database Ping (postgresql)",
-                        value=f"```py\n{await ctx.bot.postgresql_ping() * 1000:.{accuracy}f}ms```")
+                        value=f"```py\n{await ctx.bot.postgresql_ping() * 1000:.{decimal_places}f}ms```")
         embed.add_field(name="Database Ping (redis)",
-                        value=f"```py\n{await ctx.bot.redis_ping() * 1000:.{accuracy}f}ms```")
-        try:
-            await ctx.send(embed=embed)
-        except (discord.errors.HTTPException, ValueError):
-            await ctx.send(f"Too many decimal places ({accuracy}).")
+                        value=f"```py\n{await ctx.bot.redis_ping() * 1000:.{decimal_places}f}ms```")
+
+        if "-rtt" in flags or "--round-trip-time" in flags:
+            rtts = [await ctx.bot.api_ping(ctx) for _ in range(5)]
+            rtt_str = "\n".join(f"Reading {number}: {ms * 1000:{decimal_places}f}ms" for number, ms in enumerate(rtts, start=1))
+            embed.insert_field_at(2, name="\u200b", value="\u200b")
+            embed.add_field(name="\u200b", value="\u200b")
+            embed.add_field(name="Round-Trip Time", value=f"```py\n{rtt_str}```")
+
+        await ctx.send(embed=embed)
 
     @commands.command()
     async def botinfo(self, ctx):
