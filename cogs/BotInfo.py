@@ -6,7 +6,6 @@ import psutil
 import sys
 import inspect
 from jishaku import Jishaku
-import argparse
 
 
 def top5(items: list):
@@ -21,6 +20,11 @@ class BotInfo(commands.Cog, name="Bot Info"):
     """
     Commands that display information about the bot.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.rtt_cooldown = commands.CooldownMapping.from_cooldown(1, 30, type=commands.BucketType.channel)
+
     @commands.command(aliases=["up"])
     async def uptime(self, ctx):
         """
@@ -29,7 +33,6 @@ class BotInfo(commands.Cog, name="Bot Info"):
         uptime = datetime.datetime.now() - ctx.bot.start_time
         await ctx.send(f"Bot has been online for **`{humanize.precisedelta(uptime)}`**.")
 
-    @commands.cooldown(1, 30, type=commands.BucketType.channel)
     @commands.command(usage="[-rtt|--round-trip-time]")
     async def ping(self, ctx, *flags):
         """
@@ -51,6 +54,12 @@ class BotInfo(commands.Cog, name="Bot Info"):
                         value=f"```py\n{await ctx.bot.redis_ping() * 1000:.{decimal_places}f}ms```")
 
         if "-rtt" in flags or "--round-trip-time" in flags:
+            # cooldown check
+            bucket = self.rtt_cooldown.get_bucket(ctx.message)
+            retry_after = bucket.update_rate_limit()
+            if retry_after:
+                raise commands.CommandOnCooldown(bucket, retry_after)
+
             rtts = [first_ping] + [await ctx.bot.api_ping(ctx) for _ in range(4)]  # makes 5 api requests instead of 6
             rtt_str = "\n".join(f"Reading {number}: {ms * 1000:{decimal_places}f}ms" for number, ms in enumerate(rtts, start=1))
             embed.insert_field_at(2, name="\u200b", value="\u200b")
