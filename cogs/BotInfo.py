@@ -29,6 +29,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         uptime = datetime.datetime.now() - ctx.bot.start_time
         await ctx.send(f"Bot has been online for **`{humanize.precisedelta(uptime)}`**.")
 
+    @commands.cooldown(1, 30, type=commands.BucketType.channel)
     @commands.command(usage="[-rtt|--round-trip-time]")
     async def ping(self, ctx, *flags):
         """
@@ -43,14 +44,14 @@ class BotInfo(commands.Cog, name="Bot Info"):
         embed.add_field(name="Websocket Latency",
                         value=f"```py\n{ctx.bot.latency * 1000:.{decimal_places}f}ms```")
         embed.add_field(name="API Response Time",
-                        value=f"```py\n{await ctx.bot.api_ping(ctx) * 1000:.{decimal_places}f}ms```")
+                        value=f"```py\n{(first_ping := await ctx.bot.api_ping(ctx)) * 1000:.{decimal_places}f}ms```")
         embed.add_field(name="Database Ping (postgresql)",
                         value=f"```py\n{await ctx.bot.postgresql_ping() * 1000:.{decimal_places}f}ms```")
         embed.add_field(name="Database Ping (redis)",
                         value=f"```py\n{await ctx.bot.redis_ping() * 1000:.{decimal_places}f}ms```")
 
         if "-rtt" in flags or "--round-trip-time" in flags:
-            rtts = [await ctx.bot.api_ping(ctx) for _ in range(5)]
+            rtts = [first_ping] + [await ctx.bot.api_ping(ctx) for _ in range(4)]  # makes 5 api requests instead of 6
             rtt_str = "\n".join(f"Reading {number}: {ms * 1000:{decimal_places}f}ms" for number, ms in enumerate(rtts, start=1))
             embed.insert_field_at(2, name="\u200b", value="\u200b")
             embed.add_field(name="\u200b", value="\u200b")
