@@ -106,8 +106,8 @@ class Info(commands.Cog):
             embed1 = discord.Embed(
                 title="Discord Status\nCurrent Status for Discord",
                 description=f"**{summary['status']['description']}**\n"
-                            f"**Impact**: `{summary['status']['indicator'].title()}`\n"
-                            f"**Components Operational**: `{len(operational)}/{len(all_components)}`",
+                            f"**Impact:** `{summary['status']['indicator'].title()}`\n"
+                            f"**Components Operational:** `{len(operational)}/{len(all_components)}`",
                 colour=ctx.bot.embed_colour)
             embeds.append(embed1)
             # embed 2
@@ -118,7 +118,9 @@ class Info(commands.Cog):
                 for incident in summary["incidents"]:
                     embed2.add_field(
                         name=incident["name"],
-                        value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
+                        value=f"**Message:** `{incident.get('message', None)}`\n"
+                              f"**Impact:** `{incident['impact']}`\n"
+                              f"**Status:** `{incident['status']}`")
             embeds.append(embed2)
             # embed 3
             embed3 = discord.Embed(title="Discord Status\nComponent Overview", colour=ctx.bot.embed_colour)
@@ -126,7 +128,7 @@ class Info(commands.Cog):
                 if component["name"] in important_components:
                     embed3.add_field(
                         name=component["name"],
-                        value=f"{component['description'] or 'No Description'}\n**Status**: `{component['status'].title()}`",
+                        value=f"{component['description'] or 'No Description'}\n**Status:** `{component['status'].title()}`",
                         inline=False)
             embeds.append(embed3)
             # embeds 4, 5 and 6
