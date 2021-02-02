@@ -4,8 +4,7 @@ import humanize
 import datetime
 from collections import Counter
 import json
-
-from config import config
+import dateparser
 
 
 class DiscordStatusSource(menus.ListPageSource):
@@ -88,62 +87,67 @@ class Info(commands.Cog):
         embed.set_footer(text=f"Created {humanize.precisedelta(datetime.datetime.now() - ctx.guild.created_at)} ago")
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["discord_status", "dstatus"])
-    async def discordstatus(self, ctx):
+    class HistorySource(menus.ListPageSource):
+        async def format_page(self, menu, page):
+            embed = discord.Embed(
+                title="Discord Status\nHistorical Data",
+                description="```yaml\n"
+                            f"Name: {page['name']}\n"
+                            f"Status: {page['status'].title()}\n"
+                            f"Created: {humanize.naturaldate(dateparser.parse(page['created_at'])).title()}\n"
+                            f"Impact: {page['impact'].title()}" 
+                            f"```"
+            )
+            embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+            return embed
+
+    @commands.command(aliases=["dstatus"], usage="[-h|--history]")
+    async def discordstatus(self, ctx, *flags):
         """
         View the current status of discord. Source: https://discordstatus.com
+
+        **Flags:**
+        `-h|--history` - If this flag is provided, historical data will be shown instead.
         """
         async with ctx.typing():
+            if "-h" in flags or "--history" in flags:
+                async with ctx.bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/incidents.json") as r:
+                    incidents = (await r.json())["incidents"]
+                return await menus.MenuPages(self.HistorySource(incidents, per_page=1), clear_reactions_after=True).start(ctx)
+
             async with ctx.bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/summary.json") as r:
                 summary = await r.json()
-            async with ctx.bot.session.get("https://discordstatus.com/history.json") as r:
-                history = await r.json()
-            important_components = ("API", "Media Proxy", "Push Notifications", "Search", "Voice", "Third-party", "CloudFlare")
-            embeds = []
+
             # embed 1
-            all_components = list(filter(lambda c: c["name"] in important_components, summary["components"]))
-            operational = list(filter(lambda c: c["status"] == "operational", all_components))
             embed1 = discord.Embed(
                 title="Discord Status\nCurrent Status for Discord",
-                description=f"**{summary['status']['description']}**\n"
-                            f"**Impact:** `{summary['status']['indicator'].title()}`\n"
-                            f"**Components Operational:** `{len(operational)}/{len(all_components)}`",
-                colour=ctx.bot.embed_colour)
-            embeds.append(embed1)
+                description="```yaml\n"
+                            f"Message: {summary['status']['description']}\n"
+                            f"Impact: {summary['status']['indicator'].title()}\n"
+                            "```",
+                colour=ctx.bot.embed_colour
+            )
+
             # embed 2
             embed2 = discord.Embed(title="Discord Status\nCurrent Incidents", colour=ctx.bot.embed_colour)
             if not summary["incidents"]:
-                embed2.description = "There are no issues with discord as of yet."
+                embed2.description = "```yaml\nThere are no issues with discord as of yet.```"
             else:
-                for incident in summary["incidents"]:
-                    embed2.add_field(
-                        name=incident["name"],
-                        value=f"**Message:** `{incident.get('message', None)}`\n"
-                              f"**Impact:** `{incident['impact']}`\n"
-                              f"**Status:** `{incident['status']}`")
-            embeds.append(embed2)
+                embed2.description = "```yaml\n" + "\n\n".join(
+                    f"Name: {incident.get('name', None)}\n"
+                    f"Message: {incident.get('message', None)}\n"
+                    f"Status: {incident.get('status', None).title()}\n"
+                    f"Impact: {incident.get('impact', None).title()}" for incident in summary["incidents"]
+                ) + "```"
+
             # embed 3
-            embed3 = discord.Embed(title="Discord Status\nComponent Overview", colour=ctx.bot.embed_colour)
-            for component in summary["components"]:
-                if component["name"] in important_components:
-                    embed3.add_field(
-                        name=component["name"],
-                        value=f"{component['description'] or 'No Description'}\n**Status:** `{component['status'].title()}`",
-                        inline=False)
-            embeds.append(embed3)
-            # embeds 4, 5 and 6
-            for i in range(3):
-                month_data = history["months"][i]
-                embed = discord.Embed(title=f"Discord Status\nIncidents for {month_data['name']} {month_data['year']}",
-                                      colour=ctx.bot.embed_colour)
-                if len(month_data["incidents"]) == 0:
-                    embed.description = "There are no incidents this month."
-                else:
-                    for incident in month_data["incidents"]:
-                        embed.add_field(name=incident["name"],
-                                        value=f"{incident['message']}\n**Impact**: `{incident['impact']}`")
-                embeds.append(embed)
-            await menus.MenuPages(DiscordStatusSource(embeds, per_page=1), clear_reactions_after=True).start(ctx)
+            components = {c["name"]: c["status"].title().replace("_", " ") for c in summary["components"]}
+            embed3 = discord.Embed(
+                title="Discord Status\nComponents",
+                description="```yaml\n" + "\n".join(f"{k.rjust(len(max(components.keys(), key=len)))}: {v}" for k, v in components.items()) + "```",
+                colour=ctx.bot.embed_colour)
+
+            await menus.MenuPages(DiscordStatusSource([embed1, embed2, embed3], per_page=1), clear_reactions_after=True).start(ctx)
 
     @commands.guild_only()
     @commands.command(aliases=["perms"])
