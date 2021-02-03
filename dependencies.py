@@ -84,7 +84,7 @@ class PB_Bot(commands.Bot):
         self.emoji_dict = {
             "red_line": "<:red_line:799429087352717322>",
             "white_line": "<:white_line:799429050061946881>",
-            "blue_button": "<:blue_button:799429556879753226>",
+            "blue_button": "<:blue_button:806550473645490230>",
             "voice_channel": "<:voice_channel:799429142902603877>",
             "text_channel": "<:text_channel:799429180109750312>",
             "red_tick": "<:red_tick:799429329372971049>",
