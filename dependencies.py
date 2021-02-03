@@ -42,10 +42,12 @@ class PB_Bot(commands.Bot):
     Subclassed bot.
     """
     def __init__(self):
+        intents = discord.Intents.default()
+        intents.members = True
         super().__init__(
             command_prefix=get_prefix,
             case_insensitive=True,
-            intents=discord.Intents.all(),
+            intents=intents,
             owner_id=config["owner_id"],
             description="An easy to use, multipurpose discord bot written in Python by PB#4162."
         )
