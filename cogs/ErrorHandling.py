@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import traceback
-from fuzzywuzzy import process
+import difflib
 import re
 
 from dependencies import StopSpammingMe
@@ -26,10 +26,10 @@ class ErrorHandling(commands.Cog):
 
         if isinstance(error, commands.CommandNotFound):
             failed_command = re.match(f"^({ctx.prefix})\s*(.*)", ctx.message.content, flags=re.IGNORECASE).group(2)
-            match, ratio = process.extractOne(failed_command, ctx.bot.command_list)
-            if ratio < 80:
+            matches = difflib.get_close_matches(failed_command, ctx.bot.command_list)
+            if not matches:
                 return
-            await ctx.send(f"Command '{failed_command}' is not found. Did you mean `{match}`?")
+            await ctx.send(f"Command '{failed_command}' is not found. Did you mean `{matches[0]}`?")
 
         elif isinstance(error, discord.ext.commands.CommandOnCooldown):
             await ctx.send(f"This command is on cooldown, please try again in `{error.retry_after:.2f}` seconds.")
