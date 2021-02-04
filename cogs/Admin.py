@@ -4,6 +4,10 @@ import datetime
 import re
 import subprocess
 import typing
+import io
+from contextlib import redirect_stdout, suppress
+import textwrap
+import traceback
 
 
 class Admin(commands.Cog):
@@ -208,6 +212,64 @@ class Admin(commands.Cog):
         await ctx.send(f"```{out.decode('utf-8')}```")
         await ctx.message.add_reaction("🔁")
         await ctx.bot.close()  # process manager handles the rest
+
+    class StripCodeblocks(commands.Converter):
+        async def convert(self, ctx, argument):
+            double_codeblock = re.compile(r"```(.*\n)?(.+)```", flags=re.IGNORECASE)
+            inline_codeblock = re.compile(r"`(.+)`", flags=re.IGNORECASE)
+            # first, try double codeblock
+            match = double_codeblock.fullmatch(argument)
+            if match:
+                return match.group(2)
+            # try inline codeblock
+            match = inline_codeblock.fullmatch(argument)
+            if match:
+                return match.group(1)
+            # couldn't match
+            return argument
+
+    @admin.command(name="eval")
+    async def _eval(self, ctx, *, code: StripCodeblocks):
+        """
+        Evaluates code. Inspired by [R. Danny's eval](https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L217).
+
+        `code` - The code to evaluate.
+        """
+        environment = {
+            "_ctx": ctx,
+            "_bot": ctx.bot,
+            "_author": ctx.author,
+            "_channel": ctx.channel,
+            "_guild": ctx.guild,
+            "_message": ctx.message
+        }
+        stdout = io.StringIO()
+        code = textwrap.indent(code, prefix="\t")
+        eval_func = f"async def eval_func():\n{code}"
+
+        try:
+            exec(eval_func, environment)
+        except Exception as e:
+            with suppress(discord.HTTPException):
+                await ctx.message.add_reaction("❗")
+            return await ctx.send(f"```py\n{e.__class__.__name__}: {e}```")
+
+        eval_func = environment["eval_func"]
+        try:
+            with redirect_stdout(stdout):
+                val = await eval_func()
+        except Exception as e:
+            with suppress(discord.HTTPException):
+                await ctx.message.add_reaction("‼️")
+            tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+            return await ctx.author.send(f"```py\n{tb}```")
+
+        with suppress(discord.HTTPException):
+            await ctx.message.add_reaction("✅")
+        embed = discord.Embed(title="Stdout", description=f"```py\n{stdout.getvalue() or 'None'}```",
+                              colour=ctx.bot.embed_colour, timestamp=datetime.datetime.now())
+        embed.add_field(name="Return Value", value=f"```py\n{val or 'None'}```")
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
