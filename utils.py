@@ -1,4 +1,5 @@
 import textwrap
+import discord
 from discord.ext import menus
 import re
 from discord.ext import commands
@@ -6,6 +7,88 @@ import datetime
 import time
 import random
 from collections import deque
+
+
+# helper functions
+
+
+def owoify(text: str):
+    """
+    Owofies text.
+    """
+    return text.replace("l", "w").replace("L", "W").replace("r", "w").replace("R", "W")
+
+
+def humanize_list(li: list):
+    """
+    "Humanizes" a list.
+    """
+    if not li:
+        return li
+    if len(li) == 1:
+        return li[0]
+    if len(li) == 2:
+        return " and ".join(li)
+    return f"{', '.join(str(item) for item in li[:-1])} and {li[-1]}"
+
+
+class StopWatch:
+    __slots__ = ("start_time", "end_time")
+
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+
+    def start(self):
+        self.start_time = time.perf_counter()
+
+    def stop(self):
+        self.end_time = time.perf_counter()
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.stop()
+
+    @property
+    def elapsed(self):
+        return self.end_time - self.start_time
+
+
+# page sources
+
+
+class RawPageSource(menus.ListPageSource):
+    def __init__(self, data, *, per_page=1):
+        super().__init__(data, per_page=per_page)
+
+    async def format_page(self, menu, page):
+        return page
+
+
+class PaginatorSource(menus.ListPageSource):
+    def format_page(self, menu: menus.MenuPages, page):
+        return f"```{page}```\nPage {menu.current_page + 1}/{self.get_max_pages()}"
+
+
+class ErrorSource(menus.ListPageSource):
+    async def format_page(self, menu: menus.MenuPages, page):
+        if isinstance(page, list):
+            page = page[0]
+        traceback = f"```py\n{page['traceback']}```" if len(page["traceback"]) < 1991 else await menu.ctx.bot.mystbin(
+            page["traceback"])
+        embed = discord.Embed(title=f"Error Number {page['err_num']}", description=traceback)
+        for k, v in list(page.items()):
+            if k in ("err_num", "traceback"):
+                continue
+            value = f"`{v}`" if len(v) < 1000 else await menu.ctx.bot.mystbin(v)
+            embed.add_field(name=k.replace("_", " ").title(), value=value)
+        return embed
+
+
+# menus
 
 
 class Confirm(menus.Menu):
@@ -58,6 +141,9 @@ class EmbedConfirm(menus.Menu):
         return self.result
 
 
+# converters
+
+
 class ShortTime(commands.Converter):
     async def convert(self, ctx, argument):
         time_unit_mapping = {
@@ -84,108 +170,23 @@ class ShortTime(commands.Converter):
             raise commands.BadArgument("Time is too large.")
 
 
-class StopWatch:
-    __slots__ = ("start_time", "end_time")
-
-    def __init__(self):
-        self.start_time = None
-        self.end_time = None
-
-    def start(self):
-        self.start_time = time.perf_counter()
-
-    def stop(self):
-        self.end_time = time.perf_counter()
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.stop()
-
-    @property
-    def elapsed(self):
-        return self.end_time - self.start_time
+class StripCodeblocks(commands.Converter):
+    async def convert(self, ctx, argument):
+        double_codeblock = re.compile(r"```(.*\n)?(.+)```", flags=re.IGNORECASE)
+        inline_codeblock = re.compile(r"`(.+)`", flags=re.IGNORECASE)
+        # first, try double codeblock
+        match = double_codeblock.fullmatch(argument)
+        if match:
+            return match.group(2)
+        # try inline codeblock
+        match = inline_codeblock.fullmatch(argument)
+        if match:
+            return match.group(1)
+        # couldn't match
+        return argument
 
 
-class RawPageSource(menus.ListPageSource):
-    def __init__(self, data, *, per_page=1):
-        super().__init__(data, per_page=per_page)
-
-    async def format_page(self, menu, page):
-        return page
-
-
-class _PaginatorSource(commands.Paginator, menus.PageSource):
-    """
-    TODO:
-    """
-    def __init__(self, prefix='```', suffix='```', max_page_size=1000):
-        super().__init__(prefix, suffix, max_size=max_page_size)
-        self.current_page_chars_remaining = max_page_size
-
-    def is_paginating(self):
-        return self.get_max_pages() > 1
-
-    def get_max_pages(self):
-        return len(self.pages)
-
-    async def get_page(self, page_number: int):
-        return self.pages[page_number]
-
-    def add_line(self, line: str = None, *, empty: bool = False):
-        if line is None:
-            line = ""
-        try:
-            chars_remaining = len(self.pages[-1])
-        except IndexError:
-            chars_remaining = self.max_size
-        super().add_line(line[:chars_remaining], empty=empty)
-        line = line[:-chars_remaining]
-        lines = textwrap.wrap(line, self.max_size)
-        for line in lines:
-            super().add_line(line, empty=empty)
-
-    def close_page(self):
-        if self.suffix is not None:
-            self._current_page.append(self.suffix)
-        self._pages.append(''.join(self._current_page))
-
-        if self.prefix is not None:
-            self._current_page = [self.prefix]
-            self._count = len(self.prefix) + 1
-        else:
-            self._current_page = []
-            self._count = 0
-
-    async def format_page(self, menu: menus.MenuPages, entries):
-        return f"{entries}\n\nPage {menu.current_page + 1}/{self.get_max_pages()}; len = {len(entries)}"
-
-
-class PaginatorSource(menus.ListPageSource):
-    def format_page(self, menu: menus.MenuPages, page):
-        return f"```{page}```\nPage {menu.current_page + 1}/{self.get_max_pages()}"
-
-
-def owoify(text: str):
-    """
-    Owofies text.
-    """
-    return text.replace("l", "w").replace("L", "W").replace("r", "w").replace("R", "W")
-
-
-def humanize_list(li: list):
-    """
-    "Humanizes" a list.
-    """
-    if not li:
-        return li
-    if len(li) == 1:
-        return li[0]
-    if len(li) == 2:
-        return " and ".join(li)
-    return f"{', '.join(str(item) for item in li[:-1])} and {li[-1]}"
+# misc.
 
 
 class SnakeGame:
@@ -195,7 +196,7 @@ class SnakeGame:
         self.apple = apple
         self.empty = empty
         self.border = border
-        self.grid = [[[self.empty,self.border][i == 0 or i == 11 or j == 0 or j == 11] for i in range(12)] for j in range(12)]
+        self.grid = [[[self.empty, self.border][i == 0 or i == 11 or j == 0 or j == 11] for i in range(12)] for j in range(12)]
         self.snake_x = random.randint(1, 10)
         self.snake_y = random.randint(1, 10)
         self.snake = deque()
