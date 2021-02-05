@@ -141,6 +141,25 @@ class HistorySource(menus.ListPageSource):
         return embed
 
 
+class DefineSource(menus.ListPageSource):
+    def __init__(self, data, response):
+        super().__init__(data, per_page=1)
+        self.response = response
+
+    async def format_page(self, menu: menus.MenuPages, page):
+        embed = discord.Embed(
+            title=f"Definitions for word `{self.response['word']}`",
+            description=f"{self.response['phonetics'][0]['text']}\n"
+                        f"[audio]({self.response['phonetics'][0]['audio']})",
+            colour=menu.ctx.bot.embed_colour)
+        defs = []
+        for definition in page["definitions"]:
+            defs.append(f"**Definition:** {definition['definition']}\n**Example:** {definition.get('example', 'None')}")
+        embed.add_field(name=f"`{page['partOfSpeech']}`", value="\n\n".join(defs))
+        embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        return embed
+
+
 class TodoSource(menus.ListPageSource):
     def __init__(self, data):
         super().__init__(data, per_page=5)

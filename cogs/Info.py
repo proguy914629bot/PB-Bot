@@ -162,25 +162,7 @@ class Info(commands.Cog):
                 response = await r.json()
             if isinstance(response, dict):
                 return await ctx.send("Sorry pal, I couldn't find definitions for the word you were looking for.")
-            await menus.MenuPages(self.DefineSource(response[0]["meanings"], response[0]), clear_reactions_after=True).start(ctx)
-
-    class DefineSource(menus.ListPageSource):
-        def __init__(self, data, response):
-            super().__init__(data, per_page=1)
-            self.response = response
-
-        async def format_page(self, menu: menus.MenuPages, page):
-            embed = discord.Embed(
-                title=f"Definitions for word `{self.response['word']}`",
-                description=f"{self.response['phonetics'][0]['text']}\n"
-                            f"[audio]({self.response['phonetics'][0]['audio']})",
-                colour=menu.ctx.bot.embed_colour)
-            defs = []
-            for definition in page["definitions"]:
-                defs.append(f"**Definition:** {definition['definition']}\n**Example:** {definition.get('example', 'None')}")
-            embed.add_field(name=f"`{page['partOfSpeech']}`", value="\n\n".join(defs))
-            embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
-            return embed
+            await menus.MenuPages(ctx.bot.utils.DefineSource(response[0]["meanings"], response[0]), clear_reactions_after=True).start(ctx)
 
     @commands.command(aliases=["ui"])
     async def userinfo(self, ctx, *, member: discord.Member = None):
