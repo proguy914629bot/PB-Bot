@@ -9,7 +9,8 @@ from contextlib import redirect_stdout, suppress
 import textwrap
 import traceback
 
-from utils import ErrorSource, StripCodeblocks
+from utils import StripCodeblocks
+
 
 SUPPORT_SERVER_ID = 798329404325101600
 
@@ -158,7 +159,7 @@ class Admin(commands.Cog):
         errors = await ctx.bot.pool.fetch("SELECT * FROM errors")
         if not errors:
             return await ctx.send("No errors in the database! 🥳")
-        await menus.MenuPages(ErrorSource(errors, per_page=1), delete_message_after=True).start(ctx)
+        await menus.MenuPages(ctx.bot.utils.ErrorSource(errors, per_page=1), delete_message_after=True).start(ctx)
 
     @error.command()
     async def view(self, ctx, err_num: int):
@@ -170,7 +171,7 @@ class Admin(commands.Cog):
         error = await ctx.bot.pool.fetch(f"SELECT * FROM errors WHERE err_num = $1", err_num)
         if not error:
             return await ctx.send(f"Could not find an error with the number `{err_num}` in the database.")
-        await menus.MenuPages(ErrorSource([error], per_page=1)).start(ctx)  # lazy me :p
+        await menus.MenuPages(ctx.bot.utils.ErrorSource([error], per_page=1)).start(ctx)  # lazy me :p
 
     @error.command()
     async def fix(self, ctx, error):
