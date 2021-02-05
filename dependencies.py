@@ -28,7 +28,7 @@ async def get_prefix(bot, message: discord.Message):
         prefixes = (await bot.cache.get_guild_info(message.guild.id))["prefixes"]
         if not prefixes:  # couldn't find it or no prefixes
             prefixes = ["pb"]
-    prefixes = reversed(sorted(prefixes))
+    prefixes = sorted(prefixes, key=len)
     for prefix in prefixes:
         match = re.match(f"^({prefix}\s*).*", message.content, flags=re.IGNORECASE)
         if match:
