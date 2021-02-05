@@ -141,6 +141,18 @@ class HistorySource(menus.ListPageSource):
         return embed
 
 
+class TodoSource(menus.ListPageSource):
+    def __init__(self, data):
+        super().__init__(data, per_page=5)
+
+    async def format_page(self, menu: menus.MenuPages, page):
+        embed = discord.Embed(
+            title=f"Todo List for `{menu.ctx.author}`",
+            description="\n".join(f"**{number}.** {item}" for number, item in page) or "Nothing here!",
+            colour=menu.ctx.bot.embed_colour)
+        return embed
+
+
 # menus
 
 

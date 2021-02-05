@@ -145,8 +145,7 @@ class Meta(commands.Cog):
         """
         char_list = textwrap.wrap(text, 25)
         ascii_char_list = [f.renderText(char) for char in char_list]
-        await menus.MenuPages(source=ctx.bot.utils.PaginatorSource(ascii_char_list, per_page=1),
-                              delete_message_after=True).start(ctx)
+        await menus.MenuPages(source=ctx.bot.utils.PaginatorSource(ascii_char_list, per_page=1), delete_message_after=True).start(ctx)
 
     # @bot.beta_command()
     # @commands.command(
@@ -186,17 +185,6 @@ class Meta(commands.Cog):
         """
         await ctx.send(discord.utils.escape_mentions(ctx.bot.utils.owoify(text)))
 
-    class TODOSOURCE(menus.ListPageSource):
-        def __init__(self, data):
-            super().__init__(data, per_page=5)
-
-        async def format_page(self, menu: menus.MenuPages, page):
-            embed = discord.Embed(
-                title=f"Todo List for `{menu.ctx.author}`",
-                description="\n".join(f"**{number}.** {item}" for number, item in page) or "Nothing here!",
-                colour=menu.ctx.bot.embed_colour)
-            return embed
-
     @commands.group(invoke_without_command=True)
     async def todo(self, ctx):
         """
@@ -204,7 +192,7 @@ class Meta(commands.Cog):
         """
         entries = await ctx.bot.cache.get_todo(ctx.author.id)
         li = [(number, item) for number, item in enumerate(entries, start=1)]
-        await menus.MenuPages(self.TODOSOURCE(li), delete_message_after=True).start(ctx)
+        await menus.MenuPages(ctx.bot.utils.TodoSource(li), delete_message_after=True).start(ctx)
 
     @todo.command()
     async def add(self, ctx, *, task: str):
