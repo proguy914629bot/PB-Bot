@@ -7,6 +7,8 @@ import time
 import random
 from collections import deque
 import asyncio
+import dateparser
+import humanize
 
 
 # helper functions
@@ -116,6 +118,26 @@ class HelpSource(menus.ListPageSource):
             # page[1] = cog instance
             _commands = "\n".join(str(command) for command in page[1].get_commands()) or "No commands in this category."
             embed.add_field(name=page[0], value=_commands)
+        return embed
+
+
+class DiscordStatusSource(menus.ListPageSource):
+    def format_page(self, menu: menus.MenuPages, page):
+        page.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        return page
+
+
+class HistorySource(menus.ListPageSource):
+    async def format_page(self, menu: menus.MenuPages, page):
+        embed = discord.Embed(
+            title="Discord Status\nHistorical Data",
+            description="```yaml\n"
+                        f"Name: {page['name']}\n"
+                        f"Status: {page['status'].title()}\n"
+                        f"Created: {humanize.naturaldate(dateparser.parse(page['created_at'])).title()}\n"
+                        f"Impact: {page['impact'].title()}" 
+                        f"```")
+        embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
         return embed
 
 

@@ -4,13 +4,6 @@ import humanize
 import datetime
 from collections import Counter
 import json
-import dateparser
-
-
-class DiscordStatusSource(menus.ListPageSource):
-    def format_page(self, menu: menus.MenuPages, page):
-        page.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
-        return page
 
 
 class Info(commands.Cog):
@@ -87,20 +80,6 @@ class Info(commands.Cog):
         embed.set_footer(text=f"Created {humanize.precisedelta(datetime.datetime.now() - ctx.guild.created_at)} ago")
         await ctx.send(embed=embed)
 
-    class HistorySource(menus.ListPageSource):
-        async def format_page(self, menu, page):
-            embed = discord.Embed(
-                title="Discord Status\nHistorical Data",
-                description="```yaml\n"
-                            f"Name: {page['name']}\n"
-                            f"Status: {page['status'].title()}\n"
-                            f"Created: {humanize.naturaldate(dateparser.parse(page['created_at'])).title()}\n"
-                            f"Impact: {page['impact'].title()}" 
-                            f"```"
-            )
-            embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
-            return embed
-
     @commands.command(aliases=["dstatus"], usage="[-h|--history]")
     async def discordstatus(self, ctx, *flags):
         """
@@ -113,7 +92,7 @@ class Info(commands.Cog):
             if "-h" in flags or "--history" in flags:
                 async with ctx.bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/incidents.json") as r:
                     incidents = (await r.json())["incidents"]
-                return await menus.MenuPages(self.HistorySource(incidents, per_page=1), clear_reactions_after=True).start(ctx)
+                return await menus.MenuPages(ctx.bot.utils.HistorySource(incidents, per_page=1), clear_reactions_after=True).start(ctx)
 
             async with ctx.bot.session.get("https://srhpyqt94yxb.statuspage.io/api/v2/summary.json") as r:
                 summary = await r.json()
@@ -147,7 +126,7 @@ class Info(commands.Cog):
                 description="```yaml\n" + "\n".join(f"{k.rjust(len(max(components.keys(), key=len)))}: {v}" for k, v in components.items()) + "```",
                 colour=ctx.bot.embed_colour)
 
-            await menus.MenuPages(DiscordStatusSource([embed1, embed2, embed3], per_page=1), clear_reactions_after=True).start(ctx)
+            await menus.MenuPages(ctx.bot.utils.DiscordStatusSource([embed1, embed2, embed3], per_page=1), clear_reactions_after=True).start(ctx)
 
     @commands.guild_only()
     @commands.command(aliases=["perms"])
@@ -160,8 +139,7 @@ class Info(commands.Cog):
         member = member or ctx.author
         perms = list(member.permissions_in(ctx.channel))
         split_perms = [perms[x:x+12] for x in range(0, len(perms), 12)]
-        embed = discord.Embed(title=f"Permissions for `{member}` in `{ctx.channel}`",
-                              colour=ctx.bot.embed_colour)
+        embed = discord.Embed(title=f"Permissions for `{member}` in `{ctx.channel}`", colour=ctx.bot.embed_colour)
         for li in split_perms:
             field_perms = []
             for perm, value in li:
@@ -184,8 +162,7 @@ class Info(commands.Cog):
                 response = await r.json()
             if isinstance(response, dict):
                 return await ctx.send("Sorry pal, I couldn't find definitions for the word you were looking for.")
-            await menus.MenuPages(self.DefineSource(response[0]["meanings"], response[0]),
-                                  clear_reactions_after=True).start(ctx)
+            await menus.MenuPages(self.DefineSource(response[0]["meanings"], response[0]), clear_reactions_after=True).start(ctx)
 
     class DefineSource(menus.ListPageSource):
         def __init__(self, data, response):
@@ -195,14 +172,12 @@ class Info(commands.Cog):
         async def format_page(self, menu: menus.MenuPages, page):
             embed = discord.Embed(
                 title=f"Definitions for word `{self.response['word']}`",
-                description=
-                f"{self.response['phonetics'][0]['text']}\n"
-                f"[audio]({self.response['phonetics'][0]['audio']})",
+                description=f"{self.response['phonetics'][0]['text']}\n"
+                            f"[audio]({self.response['phonetics'][0]['audio']})",
                 colour=menu.ctx.bot.embed_colour)
             defs = []
             for definition in page["definitions"]:
-                defs.append(
-                    f"**Definition:** {definition['definition']}\n**Example:** {definition.get('example', 'None')}")
+                defs.append(f"**Definition:** {definition['definition']}\n**Example:** {definition.get('example', 'None')}")
             embed.add_field(name=f"`{page['partOfSpeech']}`", value="\n\n".join(defs))
             embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
             return embed
