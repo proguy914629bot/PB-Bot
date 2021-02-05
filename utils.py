@@ -153,6 +153,24 @@ class TodoSource(menus.ListPageSource):
         return embed
 
 
+class QueueSource(menus.ListPageSource):
+    def __init__(self, data, player):
+        super().__init__(data, per_page=5)
+
+        self.player = player
+
+    async def format_page(self, menu: menus.MenuPages, page):
+        embed = discord.Embed(
+            title="Song Queue",
+            description="\n".join(
+                f"**{number}.** {item}" if number != self.player.queue_position else f"*current song* ﹁\n**{number}.** {item}\n﹂ *current song*"
+                for number, item in page) or "Nothing in the queue!",
+            colour=menu.ctx.bot.embed_colour)
+        if self.get_max_pages() > 0:
+            embed.set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        return embed
+
+
 # menus
 
 
@@ -241,6 +259,181 @@ class PaginatedHelpCommand(menus.MenuPages):
 
     @menus.button('\N{BLACK SQUARE FOR STOP}\ufe0f', position=menus.Last(4))
     async def end_menu(self, _):
+        self.stop()
+
+
+class PlayerMenu(menus.Menu):
+    """
+    Player menu class.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.embed = None
+
+    async def send_initial_message(self, ctx, channel):
+        ctx.player.menus.append(self)
+        self.build_embed()
+        return await channel.send(embed=self.embed)
+
+    async def build_edit(self):
+        self.build_embed()
+        await self.message.edit(embed=self.embed)
+
+    def build_embed(self):
+        max_song_length = float(f"{self.ctx.player.current.length / 1000:.2f}")
+        current_position = float(f"{self.ctx.player.position / 1000:.2f}")
+        bar_number = int((int(current_position) / int(max_song_length)) * 20)
+        bar = f"\||{bar_number * self.ctx.bot.emoji_dict['red_line']}⚫{(19 - bar_number) * self.ctx.bot.emoji_dict['white_line']}||"
+        try:
+            coming_up = self.ctx.player.queue[self.ctx.player.queue_position]
+        except IndexError:
+            coming_up = "None"
+
+        self.embed = discord.Embed(
+            title=f"Player for `{self.ctx.guild}`",
+            description=
+            f"**Status:** `{'Paused' if self.ctx.player.is_paused else 'Playing'}`\n"
+            f"**Connected To:** `{self.ctx.guild.get_channel(self.ctx.player.channel_id).name}`\n"
+            f"**Volume:** `{self.ctx.player.volume}`\n"
+            f"**Equalizer:** `{self.ctx.player.equalizer}`",
+            colour=self.ctx.bot.embed_colour
+        )
+        self.embed.add_field(name="Now Playing:", value=f"{self.ctx.player.current}", inline=False)
+        self.embed.add_field(name="Duration:", value=humanize.precisedelta(datetime.timedelta(milliseconds=self.ctx.player.current.length)), inline=False)
+        self.embed.add_field(name="Time Elapsed:", value=humanize.precisedelta(datetime.timedelta(milliseconds=self.ctx.player.position)), inline=False)
+        self.embed.add_field(name="YT Link:", value=f"[Click Here!]({self.ctx.player.current.uri})", inline=False)
+        self.embed.add_field(name="Coming Up...", value=coming_up, inline=False)
+        self.embed.add_field(name="Progress", value=bar, inline=False)
+
+    @menus.button("⏮️")
+    async def song_previous(self, _):
+        await self.ctx.player.do_previous()
+        if self.ctx.player.queue_position > len(self.ctx.player.queue) - 1:
+            await self.build_edit()
+
+    @menus.button("⏭️")
+    async def song_skip(self, _):
+        await self.ctx.player.stop()
+        if self.ctx.player.queue_position < len(self.ctx.player.queue) - 1:
+            await self.build_edit()
+
+    @menus.button("⏯️")
+    async def play_pause(self, _):
+        await self.ctx.player.set_pause(False if self.ctx.player.paused else True)
+        await self.build_edit()
+
+    @menus.button("🔈")
+    async def volume(self, _):
+        await VolumeMenu(delete_message_after=True).start(self.ctx)
+        self.stop()
+
+    @menus.button("ℹ️")
+    async def on_menu_info(self, _):
+        embed = discord.Embed(
+            title="How to use the Player",
+            description=
+            "⏮️ go back to the previous song\n"
+            "⏭️  skip the current song\n" 
+            "⏯️  pause and unpause the player\n"
+            "🔈 opens the volume bar and closes the player\n"
+            "ℹ️  shows this message\n"
+            "🔁 refreshes the player\n"
+            "⏹️  close the player",
+            colour=self.ctx.bot.embed_colour)
+        if self.embed.title == "How to use the Player":  # hide the menu info screen
+            self.build_embed()
+        else:
+            self.embed = embed
+        await self.message.edit(embed=self.embed)
+
+    @menus.button("🔁")
+    async def on_refresh(self, _):
+        await self.build_edit()
+
+    @menus.button("⏹️")
+    async def on_menu_close(self, _):
+        self.stop()
+
+
+class VolumeMenu(menus.Menu):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.embed = None
+
+    async def send_initial_message(self, ctx, channel):
+        ctx.player.menus.append(self)
+        self.build_embed()
+        return await channel.send(embed=self.embed)
+
+    def build_embed(self):
+        volume_bar_number = int(self.ctx.player.volume / 100 * 2)
+        volume_bar = [(volume_bar_number - 1) * "🟦"] + [self.ctx.bot.emoji_dict["blue_button"]] + [(20 - volume_bar_number) * "⬜"]
+        self.embed = discord.Embed(title="Volume Bar", description="".join(volume_bar), colour=self.ctx.bot.embed_colour)
+        self.embed.set_footer(text=f"Current Volume: {self.ctx.player.volume}")
+
+    async def build_edit(self):
+        self.build_embed()
+        await self.message.edit(embed=self.embed)
+
+    @menus.button("⏮️")
+    async def on_volume_down_100(self, _):
+        await self.ctx.player.set_volume(self.ctx.player.volume - 100)
+        await self.build_edit()
+
+    @menus.button("⏪")
+    async def on_volume_down_10(self, _):
+        await self.ctx.player.set_volume(self.ctx.player.volume - 10)
+        await self.build_edit()
+
+    @menus.button("⬅️")
+    async def on_volume_down(self, _):
+        await self.ctx.player.set_volume(self.ctx.player.volume - 1)
+        await self.build_edit()
+
+    @menus.button("➡️")
+    async def on_volume_up(self, _):
+        await self.ctx.player.set_volume(self.ctx.player.volume + 1)
+        await self.build_edit()
+
+    @menus.button("⏩")
+    async def on_volume_up_10(self, _):
+        await self.ctx.player.set_volume(self.ctx.player.volume + 10)
+        await self.build_edit()
+
+    @menus.button("⏭️")
+    async def on_volume_up_100(self, _):
+        await self.ctx.player.set_volume(self.ctx.player.volume + 100)
+        await self.build_edit()
+
+    @menus.button("ℹ️")
+    async def on_menu_info(self, _):
+        embed = discord.Embed(
+            title="How to use the Volume Bar",
+            description=
+            "⏮️ decrease the volume by 100\n"
+            "⏪ decrease the volume by 10\n"
+            "⬅️ decrease the volume by 1\n"
+            "➡️ increase the volume by 1\n"
+            "⏩ increase the volume by 10\n"
+            "⏭️ increase the volume by 100\n"
+            "ℹ️ shows this message\n"
+            "🔁 refreshes the volume bar\n"
+            "⏹️ closes the volume bar",
+            colour=self.ctx.bot.embed_colour)
+        if self.embed.title == "How to use the Volume Bar":  # hide the menu info screen
+            self.build_embed()
+        else:
+            self.embed = embed
+        await self.message.edit(embed=self.embed)
+
+    @menus.button("🔁")
+    async def on_refresh(self, _):
+        await self.build_edit()
+
+    @menus.button("⏹️")
+    async def on_menu_close(self, _):
         self.stop()
 
 
