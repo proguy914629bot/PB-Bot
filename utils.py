@@ -95,6 +95,30 @@ class ErrorSource(menus.ListPageSource):
         return embed
 
 
+class HelpSource(menus.ListPageSource):
+    """
+    Page Source for paginated help command.
+    """
+    def __init__(self, data):
+        super().__init__(data, per_page=1)
+
+    async def format_page(self, menu: menus.MenuPages, page):
+        embed = discord.Embed(title="Help Menu for PB Bot",
+                              description=f"Page {menu.current_page + 1}/{self.get_max_pages()}",
+                              color=menu.ctx.bot.embed_colour)
+        embed.set_thumbnail(url=menu.ctx.bot.user.avatar_url)
+        embed.set_footer(text=f"Type {menu.ctx.clean_prefix}help (command) for more info on a command.\n"
+                              f"You can also type {menu.ctx.clean_prefix}help (category) for more info on a category.")
+        if menu.current_page == 0:
+            embed.add_field(name="About", value=menu.ctx.bot.description)
+        else:
+            # page[0] = cog name
+            # page[1] = cog instance
+            _commands = "\n".join(str(command) for command in page[1].get_commands()) or "No commands in this category."
+            embed.add_field(name=page[0], value=_commands)
+        return embed
+
+
 # menus
 
 
