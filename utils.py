@@ -19,6 +19,13 @@ def owoify(text: str):
     return text.replace("l", "w").replace("L", "W").replace("r", "w").replace("R", "W")
 
 
+def top5(items: list):
+    top5items = zip(items, ["🥇", "🥈", "🥉", "🏅", "🏅"])
+    return "\n".join(
+        f"{ranking[1]} {ranking[0][0]} ({ranking[0][1]} use{'' if ranking[0][1] == 1 else 's'})"
+        for ranking in top5items)
+
+
 def humanize_list(li: list):
     """
     "Humanizes" a list.

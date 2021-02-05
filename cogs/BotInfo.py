@@ -8,14 +8,6 @@ import inspect
 from jishaku import Jishaku
 
 
-def top5(items: list):
-    top5items = zip(items, ["🥇", "🥈", "🥉", "🏅", "🏅"])
-    return "\n".join(
-        f"{ranking[1]} {ranking[0][0]} ({ranking[0][1]} use{'' if ranking[0][1] == 1 else 's'})"
-        for ranking in top5items
-    )
-
-
 class BotInfo(commands.Cog, name="Bot Info"):
     """
     Commands that display information about the bot.
@@ -89,13 +81,14 @@ class BotInfo(commands.Cog, name="Bot Info"):
             f"• **Uptime since last restart:** {humanize.precisedelta(datetime.datetime.now() - ctx.bot.start_time)}")
         p = psutil.Process()
         m = p.memory_full_info()
-        embed.add_field(name="System",
-                        value=
-                        f"• `{p.cpu_percent()}%` cpu\n"
-                        f"• `{humanize.naturalsize(m.rss)}` physical memory\n"
-                        f"• `{humanize.naturalsize(m.vms)}` virtual memory\n"
-                        f"• running on PID `{p.pid}` with `{p.num_threads()}` thread(s)"
-                        , inline=False)
+        embed.add_field(
+            name="System",
+            value=
+            f"• `{p.cpu_percent()}%` cpu\n"
+            f"• `{humanize.naturalsize(m.rss)}` physical memory\n"
+            f"• `{humanize.naturalsize(m.vms)}` virtual memory\n"
+            f"• running on PID `{p.pid}` with `{p.num_threads()}` thread(s)",
+            inline=False)
         embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
 
@@ -223,11 +216,15 @@ class BotInfo(commands.Cog, name="Bot Info"):
                              for user_id, counter in ctx.bot.cache.command_stats["top_users_overall"].most_common(5)]
 
         embed = discord.Embed(title="Command Stats", colour=ctx.bot.embed_colour)
-        embed.add_field(name="Top 5 Commands Today", value=top5(top5commands_today) or "No commands have been used today.")
-        embed.add_field(name="Top 5 Users Today", value=top5(top5users_today) or "No one has used any commands today.")
+        embed.add_field(name="Top 5 Commands Today",
+                        value=ctx.bot.utils.top5(top5commands_today) or "No commands have been used today.")
+        embed.add_field(name="Top 5 Users Today",
+                        value=ctx.bot.utils.top5(top5users_today) or "No one has used any commands today.")
         embed.add_field(name="\u200b", value="\u200b")
-        embed.add_field(name="Top 5 Commands Overall", value=top5(top5commands_overall) or "No commands have been used.")
-        embed.add_field(name="Top 5 Users Overall", value=top5(top5users_overall) or "No one has used any commands.")
+        embed.add_field(name="Top 5 Commands Overall",
+                        value=ctx.bot.utils.top5(top5commands_overall) or "No commands have been used.")
+        embed.add_field(name="Top 5 Users Overall",
+                        value=ctx.bot.utils.top5(top5users_overall) or "No one has used any commands.")
         embed.add_field(name="\u200b", value="\u200b")
 
         await ctx.send(embed=embed)
@@ -245,7 +242,7 @@ class BotInfo(commands.Cog, name="Bot Info"):
         """
         Displays my vote link.
         """
-        embed = discord.Embed(title="Top.gg Page",  description="Remember to leave an honest review. :)",
+        embed = discord.Embed(title="Top.gg Page", description="Remember to leave an honest review. :)",
                               url=ctx.bot.top_gg_url, colour=ctx.bot.embed_colour)
         await ctx.send(embed=embed)
 
