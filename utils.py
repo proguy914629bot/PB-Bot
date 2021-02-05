@@ -1,4 +1,3 @@
-import textwrap
 import discord
 from discord.ext import menus
 import re
@@ -7,6 +6,7 @@ import datetime
 import time
 import random
 from collections import deque
+import asyncio
 
 
 # helper functions
@@ -193,7 +193,7 @@ class StripCodeblocks(commands.Converter):
         return argument
 
 
-# misc.
+# game classes
 
 
 class SnakeGame:
@@ -275,3 +275,169 @@ class SnakeGame:
             self.spawn_apple()
         else:
             self.move_snake(x, y)
+
+
+class SnakeMenu(menus.Menu):
+    """
+    Menu for snake game.
+    """
+    def __init__(self, player_ids, **kwargs):
+        super().__init__(**kwargs)
+        self.game = SnakeGame(empty="⬛")
+        self.player_ids = player_ids
+        self.direction = None
+        self.task = None
+        self.embed = None
+        self.is_game_start = asyncio.Event()
+
+    async def send_initial_message(self, ctx, channel):
+        await self.refresh_embed()
+        self.task = ctx.bot.loop.create_task(self.loop())
+        return await channel.send(embed=self.embed)
+
+    async def get_players(self):
+        if not self.player_ids:
+            return "anyone can control the game"
+        players = [str(await self.ctx.bot.fetch_user(player_id)) for player_id in self.player_ids]
+        if len(self.player_ids) > 10:
+            first10 = "\n".join(player for player in players[:10])
+            return f"{first10}\nand {len(players[10:])} more..."
+        return "\n".join(str(player) for player in players)
+
+    async def refresh_embed(self):
+        self.embed = discord.Embed(title=f"Snake Game", description=self.game.show_grid(), colour=self.ctx.bot.embed_colour)
+        self.embed.add_field(name="Players", value=await self.get_players())
+        self.embed.add_field(name="Score", value=str(self.game.score))
+        self.embed.add_field(name="Current Direction", value=self.direction)
+
+    async def loop(self):
+        await self.is_game_start.wait()
+        while not self.game.lose:
+            await asyncio.sleep(1.5)
+            self.game.update(self.direction)
+            await self.refresh_embed()
+            await self.message.edit(embed=self.embed)
+        self.embed.add_field(name="Game Over", value=self.game.lose)
+        await self.message.edit(embed=self.embed)
+        self.stop()
+
+    def reaction_check(self, payload):
+        if payload.message_id != self.message.id:
+            return False
+
+        if self.player_ids:  # only specific people can access the board
+            if payload.user_id not in self.player_ids:
+                return False
+        else:
+            if payload.user_id == self.ctx.bot.user.id:
+                return False
+        return payload.emoji in self.buttons
+
+    @menus.button("⬆️")
+    async def up(self, _):
+        self.direction = "up"
+        self.is_game_start.set()
+
+    @menus.button("⬇️")
+    async def down(self, _):
+        self.direction = "down"
+        self.is_game_start.set()
+
+    @menus.button("⬅️")
+    async def left(self, _):
+        self.direction = "left"
+        self.is_game_start.set()
+
+    @menus.button("➡️")
+    async def right(self, _):
+        self.direction = "right"
+        self.is_game_start.set()
+
+    @menus.button("⏹️")
+    async def on_stop(self, _):
+        self.stop()
+
+    def stop(self):
+        self.task.cancel()
+        super().stop()
+
+
+class TicTacToe:
+    """
+    Game class for tic-tac-toe.
+    """
+    __slots__ = ("player1", "player2", "ctx", "msg", "turn", "player_mapping", "x_and_o_mapping", "board")
+
+    def __init__(self, ctx, player1, player2):
+        self.player1 = player1
+        self.player2 = player2
+        self.ctx = ctx
+        self.msg = None
+        self.board = {"↖️": "⬜", "⬆️": "⬜", "↗️": "⬜",
+                      "➡️": "⬜", "↘️": "⬜", "⬇️": "⬜",
+                      "↙️": "⬜", "⬅️": "⬜", "⏺️": "⬜"}
+        self.turn = random.choice([self.player1, self.player2])
+        if self.turn == player1:
+            self.player_mapping = {self.player1: "🇽", self.player2: "🅾️"}
+            self.x_and_o_mapping = {"🇽": self.player1, "🅾️": self.player2}
+            return
+        self.player_mapping = {self.player2: "🇽", self.player1: "🅾️"}
+        self.x_and_o_mapping = {"🇽": self.player2, "🅾️": self.player1}
+
+    def show_board(self):
+        return f"**Tic-Tac-Toe Game between `{self.player1}` and `{self.player2}`**\n\n" \
+            f"🇽: `{self.x_and_o_mapping['🇽']}`\n🅾️: `{self.x_and_o_mapping['🅾️']}`\n\n" \
+            f"{self.board['↖️']} {self.board['⬆️']} {self.board['↗️']}\n" \
+            f"{self.board['⬅️']} {self.board['⏺️']} {self.board['➡️']}\n" \
+            f"{self.board['↙️']} {self.board['⬇️']} {self.board['↘️']}\n\n"
+
+    def switch_turn(self):
+        if self.turn == self.player1:
+            self.turn = self.player2
+            return
+        self.turn = self.player1
+
+    async def loop(self):
+        while True:
+            try:
+                move, user = await self.ctx.bot.wait_for(
+                    "reaction_add",
+                    check=lambda reaction, user: reaction.message.guild == self.ctx.guild
+                    and reaction.message.channel == self.ctx.message.channel
+                    and reaction.message == self.msg and str(reaction.emoji) in self.board.keys() and user == self.turn,
+                    timeout=300
+                )
+            except asyncio.TimeoutError:
+                await self.msg.edit(content=f"{self.show_board()}Game Over.\n**{self.turn}** took too long to move.")
+                await self.ctx.send(f"{self.turn.mention} game over, you took too long to move. {self.msg.jump_url}")
+                return
+            if self.board[move.emoji] == "⬜":
+                self.board[move.emoji] = self.player_mapping[self.turn]
+            else:
+                await self.msg.edit(content=f"{self.show_board()}**Current Turn**: `{self.turn}`\nThat place is already filled.")
+                continue
+            condition = (
+                self.board["↖️"] == self.board["⬆️"] == self.board["↗️"] != "⬜",  # across the top
+                self.board["⬅️"] == self.board["⏺️"] == self.board["➡️"] != "⬜",  # across the middle
+                self.board["↙️"] == self.board["⬇️"] == self.board["↘️"] != "⬜",  # across the bottom
+                self.board["↖️"] == self.board["⬅️"] == self.board["↙️"] != "⬜",  # down the left side
+                self.board["⬆️"] == self.board["⏺️"] == self.board["⬇️"] != "⬜",  # down the middle
+                self.board["↗️"] == self.board["➡️"] == self.board["↘️"] != "⬜",  # down the right side
+                self.board["↖️"] == self.board["⏺️"] == self.board["↘️"] != "⬜",  # diagonal
+                self.board["↙️"] == self.board["⏺️"] == self.board["↗️"] != "⬜",  # diagonal
+            )
+            if any(condition):
+                await self.msg.edit(content=f"{self.show_board()}Game Over.\n**{self.turn}** won!")
+                break
+            if "⬜" not in self.board.values():
+                await self.msg.edit(content=f"{self.show_board()}Game Over.\nIt's a Tie!")
+                break
+            self.switch_turn()
+            await self.msg.edit(content=f"{self.show_board()}**Current Turn**: `{self.turn}`")
+
+    async def start(self):
+        self.msg = await self.ctx.send(f"{self.show_board()}Setting up the board...")
+        for reaction in self.board.keys():
+            await self.msg.add_reaction(reaction)
+        await self.msg.edit(content=f"{self.show_board()}**Current Turn**: `{self.turn}`")
+        await self.loop()
