@@ -172,6 +172,44 @@ class EmbedConfirm(menus.Menu):
         return self.result
 
 
+class PaginatedHelpCommand(menus.MenuPages):
+    """
+    Paginated help command.
+    """
+    @menus.button('\U00002139', position=menus.Last(2))
+    async def on_info(self, _):
+        embed = discord.Embed(title="How to Use the Paginator", color=self.ctx.bot.embed_colour)
+        embed.add_field(name="Add and Remove Reactions to Navigate the Help Menu:",
+                        value=
+                        "➡️ next page\n"
+                        "⬅️ previous page\n"
+                        "⏮️ first page\n"
+                        "⏭️ last page\n"
+                        "ℹ️ shows this message\n"
+                        "❔    shows how to read the bot's signature\n"
+                        "⏹️ closes the paginator")
+        embed.set_thumbnail(url=self.ctx.bot.user.avatar_url)
+        embed.set_footer(text=f"You were on page {self.current_page + 1} before this message.")
+        await self.message.edit(embed=embed)
+
+    @menus.button('\U00002754', position=menus.Last(3))
+    async def on_question_mark(self, _):
+        embed = discord.Embed(
+            title="How to read the Bot's Signature",
+            description=
+            "`<argument>`: required argument\n"
+            "`[argument]`: optional argument (These arguments will usually have an '=' followed by their default value.)\n"
+            "`argument...`: multiple arguments can be provided",
+            color=self.ctx.bot.embed_colour)
+        embed.set_thumbnail(url=self.ctx.bot.user.avatar_url)
+        embed.set_footer(text=f"You were on page {self.current_page + 1} before this message.")
+        await self.message.edit(embed=embed)
+
+    @menus.button('\N{BLACK SQUARE FOR STOP}\ufe0f', position=menus.Last(4))
+    async def end_menu(self, _):
+        self.stop()
+
+
 # converters
 
 
