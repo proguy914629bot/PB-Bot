@@ -83,7 +83,8 @@ class CustomHelpCommand(commands.HelpCommand):
         matches = difflib.get_close_matches(string, self.context.bot.command_list)
         if not matches:
             return f"Command '{string}' is not found."
-        return f"Command '{string}' is not found. Did you mean `{matches[0]}`?"
+        top3 = "\n".join(matches[:3])
+        return f"Command '{string}' is not found. Did you mean:\n{top3}"
 
 
 def setup(bot):
