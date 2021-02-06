@@ -11,5 +11,3 @@ logs/
 experimental/
 
 venv/
-
-config.py
