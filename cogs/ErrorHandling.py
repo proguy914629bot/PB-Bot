@@ -3,6 +3,7 @@ from discord.ext import commands
 import traceback
 import difflib
 import re
+from contextlib import suppress
 
 from dependencies import StopSpammingMe
 
@@ -62,10 +63,8 @@ class ErrorHandling(commands.Cog):
             try:
                 await ctx.send(embed=embed)
             except discord.HTTPException:  # missing send messages permission or discord is having issues
-                try:
+                with suppress(discord.HTTPException):  # can't send to dms either
                     await ctx.author.send(embed=embed)
-                except discord.HTTPException:  # can't send to dms either
-                    pass
 
         elif isinstance(error, commands.MissingRequiredArgument):
             embed = discord.Embed(
@@ -77,14 +76,7 @@ class ErrorHandling(commands.Cog):
         elif isinstance(error, (commands.MessageNotFound, commands.ChannelNotFound, commands.MemberNotFound, commands.EmojiNotFound, commands.RoleNotFound, commands.UserNotFound)):
             await ctx.send(error)
 
-        elif isinstance(error, commands.BadArgument):
-            embed = discord.Embed(
-                title=str(error),
-                description=f"For more information on what arguments this command requires, do `{ctx.clean_prefix}help {ctx.command}`.",
-                colour=ctx.bot.embed_colour)
-            await ctx.send(embed=embed)
-
-        elif isinstance(error, commands.BadUnionArgument):
+        elif isinstance(error, (commands.BadArgument, commands.BadUnionArgument)):
             embed = discord.Embed(
                 title=str(error),
                 description=f"For more information on what arguments this command requires, do `{ctx.clean_prefix}help {ctx.command}`.",

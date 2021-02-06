@@ -10,30 +10,36 @@ class ImageManip(commands.Cog):
     Image manipulation commands. Powered by [polaroid](https://github.com/Daggy1234/polaroid).
     """
     @staticmethod
-    async def do_img_manip(ctx, image, *, method: str, filename: str, method_args: list = None, method_kwargs: dict = None):
+    async def get_image(ctx, image):
+        if ctx.message.attachments:
+            return polaroid.Image(await ctx.message.attachments[0].read())
+        elif isinstance(image, discord.PartialEmoji):
+            return polaroid.Image(await image.url.read())
+        else:
+            image = image or ctx.author
+            return polaroid.Image(await image.avatar_url_as(format="png").read())
+
+    @staticmethod
+    def _do_image_manip(image, method, *args, **kwargs):
+        method = getattr(image, method)
+        method(*args, **kwargs)
+        return image
+
+    @staticmethod
+    def build_embed(ctx, image, *, filename: str, elapsed: int):
+        file = discord.File(BytesIO(image.save_bytes()), filename=f"{filename}.png")
+        embed = discord.Embed(colour=ctx.bot.embed_colour)
+        embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        embed.set_image(url=f"attachment://{filename}.png")
+        embed.set_footer(text=f"Finished in {elapsed:.3f} seconds")
+        return embed, file
+
+    async def do_img_manip(self, ctx, image, method: str, filename: str, *args, **kwargs):
         async with ctx.typing():
             with ctx.bot.utils.StopWatch() as sw:
-                # get the image
-                if ctx.message.attachments:
-                    img = polaroid.Image(await ctx.message.attachments[0].read())
-                elif isinstance(image, discord.PartialEmoji):
-                    img = polaroid.Image(await image.url.read())
-                else:
-                    img = image or ctx.author
-                    img = polaroid.Image(await img.avatar_url_as(format="png").read())
-                # manipulate the image
-                if method_args is None:
-                    method_args = []
-                if method_kwargs is None:
-                    method_kwargs = {}
-                method = getattr(img, method)
-                method(*method_args, **method_kwargs)
-            # build and send the embed
-            file = discord.File(BytesIO(img.save_bytes()), filename=f"{filename}.png")
-            embed = discord.Embed(colour=ctx.bot.embed_colour)
-            embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-            embed.set_image(url=f"attachment://{filename}.png")
-            embed.set_footer(text=f"Finished in {sw.elapsed:.3f} seconds")
+                image = await self.get_image(ctx, image)
+                image = await ctx.bot.loop.run_in_executor(None, self._do_image_manip, image, method, *args, **kwargs)
+            embed, file = self.build_embed(ctx, image, filename=filename, elapsed=sw.elapsed)
             await ctx.send(embed=embed, file=file)
 
     @commands.command()

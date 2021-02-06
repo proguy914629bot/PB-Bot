@@ -9,6 +9,11 @@ from contextlib import redirect_stdout, suppress
 import textwrap
 import traceback
 
+from utils import StripCodeblocks
+
+
+SUPPORT_SERVER_ID = 798329404325101600
+
 
 class Admin(commands.Cog):
     """
@@ -35,13 +40,12 @@ class Admin(commands.Cog):
         confirm = await confirm_embed.prompt(ctx)
         if confirm:
             await confirm_embed.message.edit(
-                embed=discord.Embed(title="Logging out now...",
-                                    colour=ctx.bot.embed_colour,
-                                    timestamp=datetime.datetime.utcnow())
-            )
-            await ctx.bot.close()
-        else:
-            await confirm_embed.message.delete()
+                embed=discord.Embed(
+                    title="Logging out now...",
+                    colour=ctx.bot.embed_colour,
+                    timestamp=datetime.datetime.utcnow()))
+            return await ctx.bot.close()
+        await confirm_embed.message.delete()
 
     @admin.command()
     async def load(self, ctx, *cogs):
@@ -144,21 +148,8 @@ class Admin(commands.Cog):
             if not ctx.message.attachments:
                 return await ctx.send("No emoji provided.")
             emoji = await ctx.message.attachments[0].read()
-        await ctx.bot.get_guild(798329404325101600).create_custom_emoji(name=name, image=emoji)
+        await ctx.bot.get_guild(SUPPORT_SERVER_ID).create_custom_emoji(name=name, image=emoji)
         await ctx.send("👌")
-
-    class ErrorSource(menus.ListPageSource):
-        async def format_page(self, menu: menus.MenuPages, page):
-            if isinstance(page, list):
-                page = page[0]
-            traceback = f"```py\n{page['traceback']}```" if len(page["traceback"]) < 1991 else await menu.ctx.bot.mystbin(page["traceback"])
-            embed = discord.Embed(title=f"Error Number {page['err_num']}", description=traceback)
-            for k, v in list(page.items()):
-                if k in ("err_num", "traceback"):
-                    continue
-                value = f"`{v}`" if len(v) < 1000 else await menu.ctx.bot.mystbin(v)
-                embed.add_field(name=k.replace("_", " ").title(), value=value)
-            return embed
 
     @admin.group(invoke_without_command=True)
     async def error(self, ctx):
@@ -168,7 +159,7 @@ class Admin(commands.Cog):
         errors = await ctx.bot.pool.fetch("SELECT * FROM errors")
         if not errors:
             return await ctx.send("No errors in the database! 🥳")
-        await menus.MenuPages(self.ErrorSource(errors, per_page=1), delete_message_after=True).start(ctx)
+        await menus.MenuPages(ctx.bot.utils.ErrorSource(errors, per_page=1), delete_message_after=True).start(ctx)
 
     @error.command()
     async def view(self, ctx, err_num: int):
@@ -180,7 +171,7 @@ class Admin(commands.Cog):
         error = await ctx.bot.pool.fetch(f"SELECT * FROM errors WHERE err_num = $1", err_num)
         if not error:
             return await ctx.send(f"Could not find an error with the number `{err_num}` in the database.")
-        await menus.MenuPages(self.ErrorSource([error], per_page=1)).start(ctx)  # lazy me :p
+        await menus.MenuPages(ctx.bot.utils.ErrorSource([error], per_page=1)).start(ctx)  # lazy me :p
 
     @error.command()
     async def fix(self, ctx, error):
@@ -212,21 +203,6 @@ class Admin(commands.Cog):
         await ctx.send(f"```{out.decode('utf-8')}```")
         await ctx.message.add_reaction("🔁")
         await ctx.bot.close()  # process manager handles the rest
-
-    class StripCodeblocks(commands.Converter):
-        async def convert(self, ctx, argument):
-            double_codeblock = re.compile(r"```(.*\n)?(.+)```", flags=re.IGNORECASE)
-            inline_codeblock = re.compile(r"`(.+)`", flags=re.IGNORECASE)
-            # first, try double codeblock
-            match = double_codeblock.fullmatch(argument)
-            if match:
-                return match.group(2)
-            # try inline codeblock
-            match = inline_codeblock.fullmatch(argument)
-            if match:
-                return match.group(1)
-            # couldn't match
-            return argument
 
     @admin.command(name="eval")
     async def _eval(self, ctx, *, code: StripCodeblocks):
